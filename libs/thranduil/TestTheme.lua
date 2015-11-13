@@ -3,6 +3,7 @@ local TestTheme = {}
 TestTheme.Button = {}
 TestTheme.Button.draw = function(self)
     love.graphics.setColor(64, 64, 64)
+    if self.text then love.graphics.print(self.text, self.x, self.y) end
     if self.hot then love.graphics.setColor(96, 96, 96) end
     if self.down then love.graphics.setColor(32, 32, 32) end
     love.graphics.rectangle('fill', self.x, self.y, self.w, self.h)
