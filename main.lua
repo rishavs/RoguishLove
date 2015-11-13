@@ -4,17 +4,17 @@ Utils.foo()
 ------------------------------------------------
 -- libs
 ------------------------------------------------
-Gamestate = require "libs.hump.gamestate"
-Utils = require "src.utils"
-UI = require "libs.thranduil.ui"
-Theme = require "libs.thranduil.TestTheme"
+local Gamestate = require "libs.hump.gamestate"
+-- local Utils = require "src.utils"
+local UI = require "libs.thranduil.ui"
+local Theme = require "libs.thranduil.TestTheme"
 
 ------------------------------------------------
 -- Declarations
 ------------------------------------------------
-local _state_MainLoader = {} 
-local _state_MainMenu = {} 
-local _state_Settings = {} 
+local _state_MainLoader = {}
+local _state_MainMenu = {}
+local _state_Settings = {}
 local _state_Game = {}
 
 ------------------------------------------------
@@ -23,7 +23,7 @@ local _state_Game = {}
 function love.load()
     Gamestate.registerEvents()
     Gamestate.switch(_state_MainLoader)
-    
+
     UI.registerEvents()
 
 end
@@ -73,11 +73,11 @@ end
 function _state_Settings:draw()
     love.graphics.print("State: _state_Settings", 10, 10)
     love.graphics.print("Press ENTER to goto next screen", 10, 30)
-    
+
     button:draw()
 end
 
-function _state_Settings.update(dt)
+function _state_Settings:update(dt)
     button:update(dt)
 end
 
