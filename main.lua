@@ -4,10 +4,10 @@ Utils.foo()
 ------------------------------------------------
 -- libs
 ------------------------------------------------
-local Gamestate = require "libs.hump.gamestate"
+local Gamestate = require "libs/hump/gamestate"
 -- local Utils = require "src.utils"
-local UI = require "libs.thranduil.ui"
-local Theme = require "libs.thranduil.TestTheme"
+local UI = require "libs/thranduil/ui"
+local Theme = require "libs/thranduil/TestTheme"
 
 ------------------------------------------------
 -- Declarations
