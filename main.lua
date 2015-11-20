@@ -103,6 +103,10 @@ end
 function _state_MainMenu:keyreleased(key)
     if key == 'return' then
         Gamestate.switch(_state_Settings)
+    end    
+    
+    if key == 'escape' then
+        love.event.quit()
     end
 end
 
@@ -137,13 +141,15 @@ function _state_Game:init()
 
     -- State Declarations ----------------------
     local camX, camY, camZoom, camRot
+    
+    camSpeed = 1000
     --------------------------------------------
     
     self.cam = Camera(0,0, 1, 0)
     
     windowWidth  = love.graphics.getWidth()
     windowHeight = love.graphics.getHeight()
-    
+
 	-- Load map
 	self.map = STI.new("modules/base/maps/isometric_grass_and_water.lua")
     
@@ -176,12 +182,22 @@ end
 
 function _state_Game:update(dt)
     self.map:update(dt)
-    -- self.cam:move(dx * dt, dy * dt)
+
+    local mouseX, mouseY = love.mouse.getPosition( )
+    if mouseY >= windowHeight *0.98 then 
+        self.cam:move(0, camSpeed * dt)
+    elseif mouseY <= windowHeight *0.02 then 
+        self.cam:move(0, -camSpeed * dt)    
+    elseif mouseX >= windowWidth *0.98 then 
+        self.cam:move(camSpeed * dt, 0)    
+    elseif mouseX <= windowWidth *0.02 then 
+        self.cam:move(-camSpeed * dt, 0)
+    end
 end
 
 function _state_Game:keyreleased(key)
     
-    if key == 'return' then
+    if key == 'escape' then
         Gamestate.switch(_state_MainMenu)
     end
  end
