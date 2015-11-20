@@ -167,7 +167,6 @@ function _state_Game:init()
 end
     
 function _state_Game:draw()
-    love.graphics.print("State: _state_Game", 10, 10)
     
     -- Translation would normally be based on a player's x/y
     local translateX = 0
@@ -182,7 +181,8 @@ end
 
 function _state_Game:update(dt)
     self.map:update(dt)
-
+    
+    -- Edge Panning
     local mouseX, mouseY = love.mouse.getPosition( )
     if mouseY >= windowHeight *0.98 then 
         self.cam:move(0, camSpeed * dt)
@@ -193,8 +193,23 @@ function _state_Game:update(dt)
     elseif mouseX <= windowWidth *0.02 then 
         self.cam:move(-camSpeed * dt, 0)
     end
+    
+
+    
 end
 
+    -- Camera Zoom using Mouse Wheel
+function _state_Game:wheelmoved(x,y)
+    
+    if y > 0 then
+        print("Mouse wheel moved up")
+        self.cam.scale = self.cam.scale * 1.2
+    elseif y < 0 then
+        print("Mouse wheel moved down")
+        self.cam.scale = self.cam.scale * 0.8
+    end
+ end
+ 
 function _state_Game:keyreleased(key)
     
     if key == 'escape' then
