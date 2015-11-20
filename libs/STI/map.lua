@@ -24,11 +24,46 @@ local function formatPath(path)
 	return path
 end
 
+-- Compensation for scale/rotation shift
+local function compensate(tile, x, y, tw, th)
+	local tx    = x + tile.offset.x
+	local ty    = y + tile.offset.y
+	local origx = tx
+	local origy = ty
+	local compx = 0
+	local compy = 0
+
+	if tile.sx < 0 then compx = tw end
+	if tile.sy < 0 then compy = th end
+
+	if tile.r > 0 then
+		tx = tx + th - compy
+		ty = ty + th - tw + compx
+	elseif tile.r < 0 then
+		tx = tx + compy
+		ty = ty + th - compx
+	else
+		tx = tx + compx
+		ty = ty + compy
+	end
+
+	return tx, ty
+end
+
+-- Cache images in main STI module
+local function cache_image(sti, path)
+	local image = love.graphics.newImage(path)
+	image:setFilter("nearest", "nearest")
+	sti.cache[path] = image
+end
+
 --- Instance a new map
 -- @param path Path to the map file
 -- @param plugins A list of plugins to load
+-- @param ox Offset of map on the X axis (in pixels)
+-- @param oy Offset of map on the Y axis (in pixels)
 -- @return nil
-function Map:init(path, plugins)
+function Map:init(STI, path, plugins, ox, oy)
 	if type(plugins) == "table" then
 		self:loadPlugins(plugins)
 	end
@@ -43,15 +78,25 @@ function Map:init(path, plugins)
 		ex = self.width,
 		ey = self.height,
 	}
+	self.offsetx = ox or 0
+	self.offsety = oy or 0
+	self.sti     = STI
 
 	-- Set tiles, images
 	local gid = 1
 	for i, tileset in ipairs(self.tilesets) do
 		assert(tileset.image, "STI does not support Tile Collections.\nYou need to create a Texture Atlas.")
 
-		local image   = formatPath(path .. tileset.image)
-		tileset.image = love.graphics.newImage(image)
-		gid           = self:setTiles(i, tileset, gid)
+		-- Cache images
+		local formatted_path = formatPath(path .. tileset.image)
+		if not self.sti.cache[formatted_path] then
+			cache_image(self.sti, formatted_path)
+		end
+
+		-- Pull images from cache
+		tileset.image = self.sti.cache[formatted_path]
+
+		gid = self:setTiles(i, tileset, gid)
 	end
 
 	-- Set layers
@@ -132,7 +177,7 @@ function Map:setTiles(index, tileset, gid)
 				gid        = gid,
 				tileset    = index,
 				quad       = quad(qx, qy, tw, th, iw, ih),
-				properties = properties,
+				properties = properties or {},
 				terrain    = terrain,
 				animation  = animation,
 				frame      = 1,
@@ -166,11 +211,41 @@ end
 -- @return nil
 function Map:setLayer(layer, path)
 	if layer.encoding then
-		assert(layer.encoding == "lua", "STI does not support compressed map data.\nPlease set your Tile Layer Format to \"CSV\".")
+		if layer.encoding == "base64" then
+			local ffi = assert(require "ffi", "Compressed maps require LuaJIT FFI.\nPlease Switch your interperator to LuaJIT or your Tile Layer Format to \"CSV\".")
+			local fd  = love.filesystem.newFileData(layer.data, "data", "base64"):getString()
+
+			local function getDecompressedData(data)
+				local d       = {}
+				local decoded = ffi.cast("uint32_t*", data)
+
+				for i=0, data:len() / ffi.sizeof("uint32_t") do
+					table.insert(d, tonumber(decoded[i]))
+				end
+
+				return d
+			end
+
+			if not layer.compression then
+				layer.data = getDecompressedData(fd)
+			else
+				assert(love.math.decompress, "zlib and gzip compression require LOVE 0.10.0+.\nPlease set your Tile Layer Format to \"Base64 (uncompressed)\" or \"CSV\".")
+
+				if layer.compression == "zlib" then
+					local data = love.math.decompress(fd, "zlib")
+					layer.data = getDecompressedData(data)
+				end
+
+				if layer.compression == "gzip" then
+					local data = love.math.decompress(fd, "gzip")
+					layer.data = getDecompressedData(data)
+				end
+			end
+		end
 	end
 
-	layer.x      = layer.x or 0
-	layer.y      = layer.y or 0
+	layer.x      = (layer.x or 0) + self.offsetx
+	layer.y      = (layer.y or 0) + self.offsety
 	layer.update = function(dt) return end
 
 	if layer.type == "tilelayer" then
@@ -186,8 +261,12 @@ function Map:setLayer(layer, path)
 		layer.draw = function() self:drawImageLayer(layer) end
 
 		if layer.image ~= "" then
-			local image  = formatPath(path..layer.image)
-			layer.image  = love.graphics.newImage(image)
+			local formatted_path = formatPath(path .. layer.image)
+			if not self.sti.cache[formatted_path] then
+				cache_image(self.sti, formatted_path)
+			end
+
+			layer.image  = self.sti.cache[formatted_path]
 			layer.width  = layer.image:getWidth()
 			layer.height = layer.image:getHeight()
 		end
@@ -224,6 +303,7 @@ end
 -- @return nil
 function Map:setObjectData(layer)
 	for _, object in ipairs(layer.objects) do
+		object.layer            = layer
 		self.objects[object.id] = object
 	end
 end
@@ -372,6 +452,25 @@ function Map:setSpriteBatches(layer)
 	local th       = self.tileheight
 	local bw       = math.ceil(w / tw)
 	local bh       = math.ceil(h / th)
+	local sx       = 1
+	local sy       = 1
+	local ex       = layer.width
+	local ey       = layer.height
+	local ix       = 1
+	local iy       = 1
+
+	-- Determine order to add tiles to sprite batch
+	-- Defaults to right-down
+	if self.renderorder == "right-up" then
+		sx, ex, ix = 1, layer.width,   1
+		sy, ey, iy = layer.height, 1, -1
+	elseif self.renderorder == "left-down" then
+		sx, ex, ix = layer.width, 1, -1
+		sy, ey, iy = 1, layer.height, 1
+	elseif self.renderorder == "left-up" then
+		sx, ex, ix = layer.width,  1, -1
+		sy, ey, iy = layer.height, 1, -1
+	end
 
 	-- Minimum of 400 tiles per batch
 	if bw < 20 then bw = 20 end
@@ -384,10 +483,10 @@ function Map:setSpriteBatches(layer)
 		data   = {},
 	}
 
-	for y = 1, layer.height do
+	for y=sy, ey, iy do
 		local by = math.ceil(y / bh)
 
-		for x = 1, layer.width do
+		for x=sx, ex, ix do
 			local tile = layer.data[y][x]
 			local bx   = math.ceil(x / bw)
 			local id
@@ -401,30 +500,10 @@ function Map:setSpriteBatches(layer)
 				batches.data[ts][by][bx] = batches.data[ts][by][bx] or newBatch(image, size)
 
 				local batch = batches.data[ts][by][bx]
-				local tx, ty, origx, origy
+				local tx, ty
 
 				if self.orientation == "orthogonal" then
-					tx    = x * tw + tile.offset.x
-					ty    = y * th + tile.offset.y
-					origx = tx
-					origy = ty
-
-					-- Compensation for scale/rotation shift
-					local compx = 0
-					local compy = 0
-					if tile.sx < 0 then compx = tw end
-					if tile.sy < 0 then compy = th end
-
-					if tile.r > 0 then
-						tx = tx + th - compy
-						ty = ty + th - tw + compx
-					elseif tile.r < 0 then
-						tx = tx + compy
-						ty = ty + th - compx
-					else
-						tx = tx + compx
-						ty = ty + compy
-					end
+					tx, ty = compensate(tile, x*tw, y*th, tw, th)
 				elseif self.orientation == "isometric" then
 					tx = (x - y) * (tw / 2) + tile.offset.x + layer.width * tw / 2
 					ty = (x + y) * (th / 2) + tile.offset.y
@@ -474,7 +553,16 @@ function Map:setSpriteBatches(layer)
 
 				id = batch:add(tile.quad, tx, ty, tile.r, tile.sx, tile.sy)
 				self.tileInstances[tile.gid] = self.tileInstances[tile.gid] or {}
-				table.insert(self.tileInstances[tile.gid], { batch=batch, id=id, gid=tile.gid, x=origx or tx, y=origy or ty })
+				table.insert(self.tileInstances[tile.gid], {
+					layer = layer,
+					batch = batch,
+					id    = id,
+					gid   = tile.gid,
+					x     = tx,
+					y     = ty,
+					r     = tile.r,
+					oy    = 0
+				})
 			end
 		end
 	end
@@ -489,8 +577,7 @@ function Map:setObjectSpriteBatches(layer)
 	local newBatch = love.graphics.newSpriteBatch
 	local tw       = self.tilewidth
 	local th       = self.tileheight
-	local batches  = {
-	}
+	local batches  = {}
 
 	for _, object in ipairs(layer.objects) do
 		if object.gid then
@@ -503,16 +590,34 @@ function Map:setObjectSpriteBatches(layer)
 			local batch = batches[ts]
 			local tx    = object.x + tw + tile.offset.x
 			local ty    = object.y + tile.offset.y
+			local tr    = math.rad(object.rotation)
+			local oy    = 0
 
 			-- Compensation for scale/rotation shift
-			if tile.sx < 0 then tx = tx + tw end
-			if tile.sy < 0 then ty = ty + th end
-			if tile.r  > 0 then tx = tx + tw end
-			if tile.r  < 0 then ty = ty + th end
+			if tile.sx == 1 and tile.sy == 1 then
+				if tr ~= 0 then
+					ty = ty + th
+					oy = th
+				end
+			else
+				if tile.sx < 0 then tx = tx + tw end
+				if tile.sy < 0 then ty = ty + th end
+				if tr      > 0 then tx = tx + tw end
+				if tr      < 0 then ty = ty + th end
+			end
 
-			id = batch:add(tile.quad, tx, ty, tile.r, tile.sx, tile.sy)
+			id = batch:add(tile.quad, tx, ty, tr, tile.sx, tile.sy, 0, oy)
 			self.tileInstances[tile.gid] = self.tileInstances[tile.gid] or {}
-			table.insert(self.tileInstances[tile.gid], { batch=batch, id=id, gid=tile.gid, x=tx, y=ty })
+			table.insert(self.tileInstances[tile.gid], {
+				layer = layer,
+				batch = batch,
+				id    = id,
+				gid   = tile.gid,
+				x     = tx,
+				y     = ty,
+				r     = tr,
+				oy    = oy
+			})
 		end
 	end
 
@@ -546,12 +651,10 @@ function Map:setDrawRange(tx, ty, w, h)
 		ey = math.ceil(sy + h / th * 2)
 	end
 
-	self.drawRange = {
-		sx = sx,
-		sy = sy,
-		ex = ex,
-		ey = ey,
-	}
+	self.drawRange.sx = sx
+	self.drawRange.sy = sy
+	self.drawRange.ex = ex
+	self.drawRange.ey = ey
 end
 
 --- Create a Custom Layer to place userdata in (such as player sprites)
@@ -559,6 +662,7 @@ end
 -- @param index Draw order within Layer stack
 -- @return table Custom Layer
 function Map:addCustomLayer(name, index)
+	local index = index or #self.layers + 1
 	local layer = {
       type       = "customlayer",
       name       = name,
@@ -617,31 +721,51 @@ function Map:removeLayer(index)
 		table.remove(self.layers, index)
 		self.layers[name] = nil
 	end
+
+	-- Remove tile instances
+	if layer.batches then
+		for gid, tiles in pairs(self.tileInstances) do
+			for i=#tiles, 1, -1 do
+				local tile = tiles[i]
+				if tile.layer == layer then
+					table.remove(tiles, i)
+				end
+			end
+		end
+	end
+
+	-- Remove objects
+	if layer.objects then
+		for i, object in pairs(self.objects) do
+			if object.layer == layer then
+				self.objects[i] = nil
+			end
+		end
+	end
 end
 
 --- Animate Tiles and update every Layer
 -- @param dt Delta Time
 -- @return nil
 function Map:update(dt)
-	for gid, tile in pairs( self.tiles ) do
-		local update, t
+	for gid, tile in pairs(self.tiles) do
+		local update = false
 
 		if tile.animation then
-			update    = false
 			tile.time = tile.time + dt * 1000
 
 			while tile.time > tonumber(tile.animation[tile.frame].duration) do
-				tile.time  = tile.time - tonumber(tile.animation[tile.frame].duration)
+				update     = true
+				tile.time  = tile.time  - tonumber(tile.animation[tile.frame].duration)
 				tile.frame = tile.frame + 1
 
 				if tile.frame > #tile.animation then tile.frame = 1 end
-
-				update = true
 			end
-			if update == true and self.tileInstances[gid] ~= nil then
-				for _, j in pairs(self.tileInstances[gid]) do
-					t = self.tiles[tile.animation[tile.frame].tileid + self.tilesets[tile.tileset].firstgid]
-					j.batch:set( j.id, t.quad, j.x, j.y, 0 )
+
+			if update and self.tileInstances[tile.gid] then
+				for _, j in pairs(self.tileInstances[tile.gid]) do
+					local t = self.tiles[tonumber(tile.animation[tile.frame].tileid) + self.tilesets[tile.tileset].firstgid]
+					j.batch:set(j.id, t.quad, j.x, j.y, j.r, tile.sx, tile.sy, 0, j.oy)
 				end
 			end
 		end
@@ -855,7 +979,7 @@ function Map:setFlippedGID(gid)
 	local tile = self.tiles[realgid]
 	local data = {
 		id         = tile.id,
-		gid        = tile.gid,
+		gid        = gid,
 		tileset    = tile.tileset,
 		frame      = tile.frame,
 		time       = tile.time,

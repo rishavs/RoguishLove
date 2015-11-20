@@ -8,8 +8,8 @@ local Gamestate = require "libs.hump.gamestate"
 -- local Utils = require "src.utils"
 local UI = require "libs.thranduil.ui"
 local Theme = require "libs.thranduil.TestTheme"
--- local Uare = require "libs.uare"
-
+local Camera = require "libs.hump.camera"
+local STI = require "libs.sti"
 ------------------------------------------------
 -- Declarations
 ------------------------------------------------
@@ -23,16 +23,23 @@ local _state_Game = {}
 ------------------------------------------------
 function love.load()
     Gamestate.registerEvents()
-    Gamestate.switch(_state_MainLoader)
+    Gamestate.switch(_state_MainMenu)
 
     UI.registerEvents()
 
 end
 
+
 function love.quit()
 
 end
 
+function love.keypressed(key, u)
+   --Debug
+   if key == "`" then --set to whatever key you want to use
+      debug.debug()
+   end
+end
 ------------------------------------------------
 -- State Definition: _state_MainLoader
 ------------------------------------------------
@@ -53,36 +60,43 @@ end
 ------------------------------------------------
 
 function _state_MainMenu:init()
-    -- _frame_MainMenu_Container = UI.Frame(0, 0, 100, 100, {extensions = {Theme.Frame}, draggable = true, drag_margin = 10, resizable = true, resize_margin = 5})
-    _button_MainMenu_New = UI.Button(100, 100, 100, 40, {extensions = {Theme.Button}, text = "New"})
-    _button_MainMenu_Save = UI.Button(100, 150, 100, 40, {extensions = {Theme.Button}, text = "Save"})
-    _button_MainMenu_Load = UI.Button(100, 200, 100, 40, {extensions = {Theme.Button}, text = "Load"})
-    _button_MainMenu_Settings = UI.Button(100, 250, 100, 40, {extensions = {Theme.Button}, text = "Settings"})
-    _button_MainMenu_Quit = UI.Button(100, 300, 100, 40, {extensions = {Theme.Button}, text = "Quit"})
+    self._frame_MainMenu_Container = UI.Frame(love.graphics.getWidth()/5, love.graphics.getHeight()/10, love.graphics.getWidth()*3/5, 500, {extensions = {Theme.Frame}})
+
+    self._button_MainMenu_New = self._frame_MainMenu_Container:addElement(UI.Button(100, 100, 100, 40, {extensions = {Theme.Button}, text = "New"}))
+    self._button_MainMenu_Save = self._frame_MainMenu_Container:addElement(UI.Button(100, 150, 100, 40, {extensions = {Theme.Button}, text = "Save"}))
+    self._button_MainMenu_Load = self._frame_MainMenu_Container:addElement(UI.Button(100, 200, 100, 40, {extensions = {Theme.Button}, text = "Load"}))
+    self._button_MainMenu_Settings = self._frame_MainMenu_Container:addElement(UI.Button(100, 250, 100, 40, {extensions = {Theme.Button}, text = "Settings"}))
+    self._button_MainMenu_Quit = self._frame_MainMenu_Container:addElement(UI.Button(100, 300, 100, 40, {extensions = {Theme.Button}, text = "Quit"}))
 end
 
 function _state_MainMenu:draw()
     love.graphics.print("State: _state_MainMenu", 10, 10)
     love.graphics.print("Press ENTER to goto next screen", 10, 30)
-    
-    _button_MainMenu_New:draw();
-    _button_MainMenu_Save:draw();
-    _button_MainMenu_Load:draw();
-    _button_MainMenu_Settings:draw();
-    _button_MainMenu_Quit:draw();
+
+    self._frame_MainMenu_Container:draw();
+
 end
 
 function _state_MainMenu:update(dt)
-    _button_MainMenu_New:update(dt);
-    if _button_MainMenu_New.released then print("New") end;
-    _button_MainMenu_Save:update(dt);
-    if _button_MainMenu_Save.released then print("Save") end;
-    _button_MainMenu_Load:update(dt);
-    if _button_MainMenu_Load.released then print("Load") end;
-    _button_MainMenu_Settings:update(dt);
-    if _button_MainMenu_Settings.released then print("Settings") end;
-    _button_MainMenu_Quit:update(dt);
-    if _button_MainMenu_Quit.released then print("Quit") end;
+    self._frame_MainMenu_Container:update(dt);
+
+    if self._button_MainMenu_New.released then 
+        print("New") 
+        Gamestate.switch(_state_Game)
+    end;
+    
+    if self._button_MainMenu_Save.released then print("Save") end;
+    if self._button_MainMenu_Load.released then print("Load") end;
+    
+    if self._button_MainMenu_Settings.released then 
+        print("Settings") 
+        Gamestate.switch(_state_Settings)
+    end;
+    
+    if self._button_MainMenu_Quit.released then 
+        print("Quit") 
+        love.event.quit()
+    end;
 end
 
 
@@ -119,14 +133,79 @@ end
 ------------------------------------------------
 -- State Definition: _state_Game
 ------------------------------------------------
+function _state_Game:init()
+
+    -- State Declarations ----------------------
+    local camX, camY, camZoom, camRot
+    --------------------------------------------
+    
+    self.cam = Camera(0,0, 1, 0)
+    
+    windowWidth  = love.graphics.getWidth()
+    windowHeight = love.graphics.getHeight()
+    
+	-- Load map
+	self.map = STI.new("modules/base/maps/isometric_grass_and_water.lua")
+    
+	print(STI._VERSION) -- Print STI Version
+	print(self.map.tiledversion)    -- Print Tiled Version
+    
+    -- Add a Custom Layer
+	self.map:addCustomLayer("Sprite Layer", 3)
+
+	local spriteLayer = self.map.layers["Sprite Layer"]
+
+	-- Add Custom Data
+	spriteLayer.sprite = love.graphics.circle( "fill", 30, 30, 50, 5 )
+
+end
+    
 function _state_Game:draw()
     love.graphics.print("State: _state_Game", 10, 10)
+    
+    -- Translation would normally be based on a player's x/y
+    local translateX = 0
+    local translateY = 0
+
+    -- Draw Range culls unnecessary tiles
+    self.map:setDrawRange(-translateX, -translateY, windowWidth, windowHeight)
+    self.cam:attach()
+    self.map:draw()
+    self.cam:detach()
+end
+
+function _state_Game:update(dt)
+    self.map:update(dt)
+    -- self.cam:move(dx * dt, dy * dt)
 end
 
 function _state_Game:keyreleased(key)
+    
     if key == 'return' then
         Gamestate.switch(_state_MainMenu)
     end
+ end
+
+function _state_Game:keypressed(key) 
+    if key == 'left' then
+        self.cam:move(-50, 0)
+    end    
+    
+    if key == 'right' then
+        self.cam:move(50, 0)
+    end    
+    
+    if key == 'up' then
+        self.cam:move(0, -50)
+    end    
+    
+    if key == 'down' then
+        self.cam:move(0, 50)
+    end    
+end
+
+function _state_Game:mousereleased(x, y, button)
+    print ("MButton :" .. button .. ", X :" .. x .. ", Y :" .. y)
 end
 ------------------------------------------------
 -- Custom functions

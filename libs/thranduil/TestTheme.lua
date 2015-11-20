@@ -3,13 +3,16 @@ local TestTheme = {}
 TestTheme.Button = {}
 TestTheme.Button.draw = function(self)
     love.graphics.setColor(64, 64, 64)
-    if self.text then love.graphics.print(self.text, self.x, self.y) end
     if self.hot then love.graphics.setColor(96, 96, 96) end
     if self.down then love.graphics.setColor(32, 32, 32) end
     love.graphics.rectangle('fill', self.x, self.y, self.w, self.h)
     if self.selected then 
         love.graphics.setColor(128, 32, 32) 
         love.graphics.rectangle('line', self.x, self.y, self.w, self.h)
+    end
+    if self.text then 
+        love.graphics.setColor(255, 255, 255)
+        love.graphics.print(self.text, self.x, self.y) 
     end
 end
 
@@ -141,7 +144,7 @@ TestTheme.Frame = {}
 TestTheme.Frame.draw = function(self)
     -- Draw frame
     love.graphics.setColor(32, 32, 32)
-    love.graphics.rectangle('fill', self.x, self.y, self.w, self.h)
+    love.graphics.rectangle('line', self.x, self.y, self.w, self.h)
 
     -- Draw resize borders
     if self.resizable then
