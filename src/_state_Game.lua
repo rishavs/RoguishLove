@@ -8,7 +8,9 @@ function _state_Game:init()
     -- State Declarations ----------------------
     local camX, camY, camZoom, camRot
     
-    camSpeed = 1000
+    camSpeed = 1000 -- Scrolling speed for the camera
+    camAcclr = 10   -- Acceleration factor for the camera
+    screenEdge = 0.98   -- The area at the screen edge where paning needs to start. eg after 98% of screen size. value < 1
     --------------------------------------------
     
     self.cam = Camera(0,0, 1, 0)
@@ -21,6 +23,9 @@ function _state_Game:init()
     
 	print(STI._VERSION) -- Print STI Version
 	print(self.map.tiledversion)    -- Print Tiled Version
+    
+    self.mapWidthPixels = self.map.width * self.map.tilewidth 
+    self.mapHeightPixels = self.map.height * self.map.tileheight
     
     -- Add a Custom Layer
 	self.map:addCustomLayer("Sprite Layer", 3)
@@ -47,17 +52,24 @@ end
 
 function _state_Game:update(dt)
     self.map:update(dt)
-    
+
     -- Edge Panning
     local mouseX, mouseY = love.mouse.getPosition( )
-    if mouseY >= windowHeight *0.98 then 
-        self.cam:move(0, camSpeed * dt)
-    elseif mouseY <= windowHeight *0.02 then 
+    local screenBottomEdge = windowHeight * screenEdge 
+    local screenTopEdge = windowHeight * (1 - screenEdge)
+    local screenRightEdge = windowWidth * screenEdge
+    local screenLeftEdge = windowWidth * (1-screenEdge)
+    
+    local camX, camY = self.cam:position()
+    
+    if mouseY > screenBottomEdge and camY < self.mapHeightPixels then 
+        self.cam:move(0, camSpeed * dt )
+    elseif mouseY < screenTopEdge and camY > 0 then 
         self.cam:move(0, -camSpeed * dt)    
-    elseif mouseX >= windowWidth *0.98 then 
-        self.cam:move(camSpeed * dt, 0)    
-    elseif mouseX <= windowWidth *0.02 then 
-        self.cam:move(-camSpeed * dt, 0)
+    elseif mouseX > screenRightEdge and camX < self.mapWidthPixels then 
+        self.cam:move(camSpeed * dt , 0)    
+    elseif mouseX < screenLeftEdge and camX > 0 then 
+        self.cam:move(-camSpeed * dt , 0)
     end
     
 end
@@ -66,10 +78,8 @@ end
 function _state_Game:wheelmoved(x,y)
     
     if y > 0 then
-        print("Mouse wheel moved up")
         self.cam.scale = self.cam.scale * 1.2
     elseif y < 0 then
-        print("Mouse wheel moved down")
         self.cam.scale = self.cam.scale * 0.8
     end
  end
@@ -78,6 +88,9 @@ function _state_Game:keyreleased(key)
     
     if key == 'escape' then
         Gamestate.switch(_state_MainMenu)
+    end    
+    if key == 'space' then
+        self.cam:lookAt(30, 30)
     end
  end
 

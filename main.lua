@@ -1,18 +1,20 @@
-local Utils = require "src.utils"
-Utils.foo()
-_state_MainMenu = require "src._state_MainMenu"
-_state_Game = require "src._state_Game"
-_state_MainLoader = require "src._state_MainLoader"
-_state_Settings = require "src._state_Settings"
+
 ------------------------------------------------
 -- libs
 ------------------------------------------------
 Gamestate = require "libs.hump.gamestate"
--- local Utils = require "src.utils"
 UI = require "libs.thranduil.ui"
 Theme = require "libs.thranduil.TestTheme"
 Camera = require "libs.hump.camera"
 STI = require "libs.sti"
+------------------------------------------------
+-- Custom libs
+------------------------------------------------
+Utils = require "src.utils"
+_state_MainMenu = require "src._state_MainMenu"
+_state_Game = require "src._state_Game"
+_state_MainLoader = require "src._state_MainLoader"
+_state_Settings = require "src._state_Settings"
 ------------------------------------------------
 -- Declarations
 ------------------------------------------------
@@ -34,12 +36,6 @@ function love.quit()
 
 end
 
-function love.keypressed(key, u)
-   --Debug
-   if key == "`" then --set to whatever key you want to use
-      debug.debug()
-   end
-end
 
 ------------------------------------------------
 -- Custom functions
