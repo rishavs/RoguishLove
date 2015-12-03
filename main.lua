@@ -10,9 +10,9 @@ STI = require "libs.sti"
 LDebug = require "libs.lovedebug.lovedebug"
 
 ------------------------------------------------
--- Custom libs
+-- Componants
 ------------------------------------------------
-Utils = require "src._utils"
+Utils = require "src.Utils"
 _state_MainMenu = require "src._state_MainMenu"
 _state_Game = require "src._state_Game"
 _state_MainLoader = require "src._state_MainLoader"

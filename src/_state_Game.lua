@@ -1,3 +1,12 @@
+------------------------------------------------
+-- Componants
+------------------------------------------------
+HUD = require "src.HUD"
+GUI = require "src.GUI"
+
+------------------------------------------------
+-- Declarations
+------------------------------------------------
 local _state_Game = {}
 
 local _layer_Tilemap = {}
@@ -25,7 +34,7 @@ function _state_Game:init()
     windowHeight = love.graphics.getHeight()
 
 	-- Load map
-	self.map = STI.new("modules/base/maps/isometric_grass_and_water.lua")
+	self.map = STI.new("modules/base/maps/sample_64.lua")
     
 	-- print(STI._VERSION) -- Print STI Version
 	-- print(self.map.tiledversion)    -- Print Tiled Version
@@ -37,17 +46,15 @@ function _state_Game:init()
 	sprite = love.graphics.newImage("modules/base/assets/art/frowny.png")    
     width = sprite:getWidth()
     height = sprite:getHeight()
+    
+    HUD:init()
 end
     
 function _state_Game:draw()
 
-
-    
     -- Translation would normally be based on a player's x/y
     local translateX = 0
     local translateY = 0
-
-
     
     self.cam:attach() -- Everything inside the camera goes here
     
@@ -62,7 +69,8 @@ function _state_Game:draw()
 
     -- Fixed Position stuff like HUD go here --
     ------------------------------------------------
-        
+    HUD:draw()
+    
 end
 
 function _state_Game:update(dt)
@@ -86,7 +94,7 @@ function _state_Game:update(dt)
     elseif mouseX < screenLeftEdge and camX > 0 then 
         self.cam:move(-camSpeed * dt , 0)
     end
-    
+    HUD:update(dt)
 end
 
     -- Camera Zoom using Mouse Wheel
