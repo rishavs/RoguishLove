@@ -1,19 +1,25 @@
 local _state_Game = {}
 
+local _layer_Tilemap = {}
+local _layer_Sprites = {}
+local _layer_Foreground = {}
+local _layer_HUD = {}
+local _layer_UI = {}
+
 ------------------------------------------------
 -- State Definition: _state_Game
 ------------------------------------------------
 function _state_Game:init()
 
     -- State Declarations ----------------------
-    local camX, camY, camZoom, camRot
+    local camX, camY, camZoom, camRot = 0, 0, 1, 0
     
     camSpeed = 1000 -- Scrolling speed for the camera
-    camAcclr = 10   -- Acceleration factor for the camera
-    screenEdge = 0.98   -- The area at the screen edge where paning needs to start. eg after 98% of screen size. value < 1
+    camAcclr = 10  -- Acceleration factor for the camera
+    screenEdge = 0.98   -- The area at the screen edge where panning needs to start. eg after 98% of screen size. value < 1
     --------------------------------------------
     
-    self.cam = Camera(0,0, 1, 0)
+    self.cam = Camera(camX, camY, camZoom, camRot)
     
     windowWidth  = love.graphics.getWidth()
     windowHeight = love.graphics.getHeight()
@@ -21,33 +27,42 @@ function _state_Game:init()
 	-- Load map
 	self.map = STI.new("modules/base/maps/isometric_grass_and_water.lua")
     
-	print(STI._VERSION) -- Print STI Version
-	print(self.map.tiledversion)    -- Print Tiled Version
+	-- print(STI._VERSION) -- Print STI Version
+	-- print(self.map.tiledversion)    -- Print Tiled Version
     
     self.mapWidthPixels = self.map.width * self.map.tilewidth 
     self.mapHeightPixels = self.map.height * self.map.tileheight
     
     -- Add a Custom Layer
-	self.map:addCustomLayer("Sprite Layer", 3)
-
-	local spriteLayer = self.map.layers["Sprite Layer"]
-
-	-- Add Custom Data
-	spriteLayer.sprite = love.graphics.circle( "fill", 30, 30, 50, 5 )
-
+	sprite = love.graphics.newImage("modules/base/assets/art/frowny.png")    
+    width = sprite:getWidth()
+    height = sprite:getHeight()
 end
     
 function _state_Game:draw()
+
+
     
     -- Translation would normally be based on a player's x/y
     local translateX = 0
     local translateY = 0
 
+
+    
+    self.cam:attach() -- Everything inside the camera goes here
+    
     -- Draw Range culls unnecessary tiles
     self.map:setDrawRange(-translateX, -translateY, windowWidth, windowHeight)
-    self.cam:attach()
     self.map:draw()
-    self.cam:detach()
+
+    love.graphics.draw(sprite, 100, 100, math.rad(90), 1, 1, width / 2, height / 2)
+    
+    self.cam:detach() -- Everything outside the camera goes here
+    
+
+    -- Fixed Position stuff like HUD go here --
+    ------------------------------------------------
+        
 end
 
 function _state_Game:update(dt)
@@ -97,17 +112,11 @@ function _state_Game:keyreleased(key)
 function _state_Game:keypressed(key) 
     if key == 'left' then
         self.cam:move(-50, 0)
-    end    
-    
-    if key == 'right' then
+    elseif key == 'right' then
         self.cam:move(50, 0)
-    end    
-    
-    if key == 'up' then
+    elseif key == 'up' then
         self.cam:move(0, -50)
-    end    
-    
-    if key == 'down' then
+    elseif key == 'down' then
         self.cam:move(0, 50)
     end    
 end

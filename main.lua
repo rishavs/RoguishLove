@@ -7,10 +7,12 @@ UI = require "libs.thranduil.ui"
 Theme = require "libs.thranduil.TestTheme"
 Camera = require "libs.hump.camera"
 STI = require "libs.sti"
+LDebug = require "libs.lovedebug.lovedebug"
+
 ------------------------------------------------
 -- Custom libs
 ------------------------------------------------
-Utils = require "src.utils"
+Utils = require "src._utils"
 _state_MainMenu = require "src._state_MainMenu"
 _state_Game = require "src._state_Game"
 _state_MainLoader = require "src._state_MainLoader"
