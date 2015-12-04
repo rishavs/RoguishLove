@@ -1,8 +1,13 @@
 ------------------------------------------------
+-- libs
+------------------------------------------------
+local Anim = require "libs.Anim8.anim8"
+
+------------------------------------------------
 -- Componants
 ------------------------------------------------
-HUD = require "src.HUD"
-GUI = require "src.GUI"
+local HUD = require "src.HUD"
+local GUI = require "src.GUI"
 
 ------------------------------------------------
 -- Declarations
@@ -43,10 +48,14 @@ function _state_Game:init()
     self.mapHeightPixels = self.map.height * self.map.tileheight
     
     -- Add a Custom Layer
-	sprite = love.graphics.newImage("modules/base/assets/art/frowny.png")    
-    width = sprite:getWidth()
-    height = sprite:getHeight()
+	img = love.graphics.newImage("modules/base/assets/art/frowny.png")    
+    imgWidth = img:getWidth()
+    imgHeight = img:getHeight()
     
+    sprite_img = love.graphics.newImage('modules/base/assets/art/sprites/knight.png')
+    local sprite_grid = Anim.newGrid(128, 128, sprite_img:getWidth(), sprite_img:getHeight())
+    anim_test = Anim.newAnimation(sprite_grid('1-4',1), 0.3)
+  
     HUD:init()
 end
     
@@ -56,15 +65,22 @@ function _state_Game:draw()
     local translateX = 0
     local translateY = 0
     
-    self.cam:attach() -- Everything inside the camera goes here
+    self.cam:attach() 
+    -- Everything inside the camera goes here
+    ------------------------------------------------
     
     -- Draw Range culls unnecessary tiles
     self.map:setDrawRange(-translateX, -translateY, windowWidth, windowHeight)
     self.map:draw()
 
-    love.graphics.draw(sprite, 100, 100, math.rad(90), 1, 1, width / 2, height / 2)
+    love.graphics.draw(img, 100, 100, math.rad(90), 1, 1, imgWidth / 2, imgHeight / 2)
+
+    anim_test:draw(sprite_img, 300, 500)
+
     
-    self.cam:detach() -- Everything outside the camera goes here
+    self.cam:detach() 
+    -- Everything outside the camera goes here
+    ------------------------------------------------
     
 
     -- Fixed Position stuff like HUD go here --
@@ -94,6 +110,9 @@ function _state_Game:update(dt)
     elseif mouseX < screenLeftEdge and camX > 0 then 
         self.cam:move(-camSpeed * dt , 0)
     end
+    
+    anim_test:update(dt)
+    
     HUD:update(dt)
 end
 
