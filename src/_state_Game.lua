@@ -39,7 +39,7 @@ function _state_Game:init()
     windowHeight = love.graphics.getHeight()
 
 	-- Load map
-	self.map = STI.new("modules/base/maps/sample_64.lua")
+	self.map = STI.new("modules/base/maps/testMap.lua")
     
 	-- print(STI._VERSION) -- Print STI Version
 	-- print(self.map.tiledversion)    -- Print Tiled Version

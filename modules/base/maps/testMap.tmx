@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="staggered" renderorder="right-down" width="50" height="50" tilewidth="128" tileheight="64" staggeraxis="y" staggerindex="odd" nextobjectid="1">
+ <tileset firstgid="1" name="map" tilewidth="128" tileheight="128" tilecount="6">
+  <tileoffset x="0" y="32"/>
+  <image source="map.png" width="768" height="128"/>
+  <tile id="0">
+   <properties>
+    <property name="type" value="grass"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="type" value="road"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="type" value="water"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="type" value="wall"/>
+   </properties>
+  </tile>
+ </tileset>
+ <layer name="bg" width="50" height="50">
+  <data encoding="base64" compression="zlib">
+   eJztmNsOgzAMQ2Hl/795T5OiLHET1DUu64MlkED41CS9nMdxnFtfauL6BVTt819YWvH3R/rTzzKxRb0wM4zKA9XKrHrJ5NGc96oZLH8j/q2KnhXlsJ5j40Ce7uQxm6UpZfJAWVTUicwjwtLLo4JDeu9xRPOoUsYb61yYGeNMv1qBhZkDjfnOgz+PzNz5C10Bf3c4ZvJcgONuHhX/l8Ug/UXWJ9Ucl3NtcSAGJo4ei/X+i4Cjx6DH2mJgzMOrE09yrVrNMYqBgcPru55agKNq/oj61wxMHJkcLA7kn4VD96RPn0WsDBzeHhrVMgtH78xPZpBdn8zOo3d2Yc15jBxIsrZX5tC+LG/s/Up7RwzsHJIF7aXYOXr7EMszI8dT8pAciMG6Z+OIcKJ8VtDOg1sr57G19RS9AauHDA4=
+  </data>
+ </layer>
+ <objectgroup name="obj"/>
+ <layer name="fg" width="50" height="50" offsetx="0" offsety="12">
+  <data encoding="base64" compression="zlib">
+   eJzt07ENADAIBDEa9l+ZIjsEPbInuOaqAAAA4OntAAiQ+EliM/zmEwAAAIAbBtNnABU=
+  </data>
+ </layer>
+</map>
