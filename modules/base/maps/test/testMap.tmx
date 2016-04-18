@@ -30,7 +30,7 @@
   </data>
  </layer>
  <objectgroup name="obj"/>
- <layer name="fg" width="50" height="50" offsetx="0" offsety="12">
+ <layer name="fg" width="50" height="50" visible="0" offsetx="0" offsety="12">
   <data encoding="base64" compression="zlib">
    eJzt07ENADAIBDEa9l+ZIjsEPbInuOaqAAAA4OntAAiQ+EliM/zmEwAAAIAbBtNnABU=
   </data>

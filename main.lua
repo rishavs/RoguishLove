@@ -8,7 +8,7 @@ Theme = require "libs.thranduil.TestTheme"
 Camera = require "libs.hump.camera"
 STI = require "libs.sti"
 LDebug = require "libs.lovedebug.lovedebug"
-
+Inspect = require 'libs.inspect.inspect'
 ------------------------------------------------
 -- Componants
 ------------------------------------------------
@@ -32,7 +32,6 @@ function love.load()
     UI.registerEvents()
 
 end
-
 
 function love.quit()
 

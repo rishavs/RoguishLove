@@ -1,5 +1,20 @@
 # Change Log
 
+## 2016-01-12: v0.14.1.12
+
+* Added: Basic support for object layers in Bump plugin (thanks @premek)
+* Changed: New line token from CRLF to LF
+* Fixed: Sprite batches should now respect the map draw order
+
+## 2016-01-01: v0.14.1.11
+
+* Fixed: Various bugs in the Box2D plugin (thanks @ChrisWeisiger)
+* Fixed: Various bugs in the Bump plugin (thanks @bobbyjoness)
+
+## 2015-12-31: v0.14.1.10
+
+* Fixed: Box2D plugin was not recognizing a tile's embedded object group
+
 ## 2015-11-19: v0.14.1.9
 
 * Changed: key in image cache to formatted path of image

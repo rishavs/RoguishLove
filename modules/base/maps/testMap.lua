@@ -92,7 +92,7 @@ return {
       y = 0,
       width = 50,
       height = 50,
-      visible = true,
+      visible = false,
       opacity = 1,
       offsetx = 0,
       offsety = 12,

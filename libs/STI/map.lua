@@ -157,15 +157,18 @@ function Map:setTiles(index, tileset, gid)
 			local id = gid - tileset.firstgid
 			local qx = (x - 1) * tw + m + (x - 1) * s
 			local qy = (y - 1) * th + m + (y - 1) * s
-			local properties, terrain, animation
+			local properties, terrain, animation, objectGroup
 
 			for _, tile in pairs(tileset.tiles) do
 				if tile.id == id then
-					properties = tile.properties
-					animation  = tile.animation
+					properties  = tile.properties
+					animation   = tile.animation
+					objectGroup = tile.objectGroup
+
 					if tile.terrain then
 						terrain = {}
-						for i=1,#tile.terrain do
+
+						for i=1, #tile.terrain do
 							terrain[i] = tileset.terrains[tile.terrain[i] + 1]
 						end
 					end
@@ -173,21 +176,22 @@ function Map:setTiles(index, tileset, gid)
 			end
 
 			local tile = {
-				id         = id,
-				gid        = gid,
-				tileset    = index,
-				quad       = quad(qx, qy, tw, th, iw, ih),
-				properties = properties or {},
-				terrain    = terrain,
-				animation  = animation,
-				frame      = 1,
-				time       = 0,
-				width      = tw,
-				height     = th,
-				sx         = 1,
-				sy         = 1,
-				r          = 0,
-				offset     = {
+				id          = id,
+				gid         = gid,
+				tileset     = index,
+				quad        = quad(qx, qy, tw, th, iw, ih),
+				properties  = properties or {},
+				terrain     = terrain,
+				animation   = animation,
+				objectGroup = objectGroup,
+				frame       = 1,
+				time        = 0,
+				width       = tw,
+				height      = th,
+				sx          = 1,
+				sy          = 1,
+				r           = 0,
+				offset      = {
 					x = -mw + tileset.tileoffset.x,
 					y = -th + tileset.tileoffset.y,
 				},
@@ -462,14 +466,14 @@ function Map:setSpriteBatches(layer)
 	-- Determine order to add tiles to sprite batch
 	-- Defaults to right-down
 	if self.renderorder == "right-up" then
-		sx, ex, ix = 1, layer.width,   1
-		sy, ey, iy = layer.height, 1, -1
+		sx, ex, ix = sx, ex,  1
+		sy, ey, iy = ey, sy, -1
 	elseif self.renderorder == "left-down" then
-		sx, ex, ix = layer.width, 1, -1
-		sy, ey, iy = 1, layer.height, 1
+		sx, ex, ix = ex, sx, -1
+		sy, ey, iy = sy, ey,  1
 	elseif self.renderorder == "left-up" then
-		sx, ex, ix = layer.width,  1, -1
-		sy, ey, iy = layer.height, 1, -1
+		sx, ex, ix = ex, sx, -1
+		sy, ey, iy = ey, sy, -1
 	end
 
 	-- Minimum of 400 tiles per batch
@@ -827,11 +831,26 @@ function Map:drawTileLayer(layer)
 	local sy = math.ceil((self.drawRange.sy - layer.y / self.tileheight	- 1) / bh)
 	local ex = math.ceil((self.drawRange.ex - layer.x / self.tilewidth	+ 1) / bw)
 	local ey = math.ceil((self.drawRange.ey - layer.y / self.tileheight	+ 1) / bh)
+	local ix = 1
+	local iy = 1
 	local mx = math.ceil(self.width / bw)
 	local my = math.ceil(self.height / bh)
 
-	for by=sy, ey do
-		for bx=sx, ex do
+	-- Determine order to draw batches
+	-- Defaults to right-down
+	if self.renderorder == "right-up" then
+		sx, ex, ix = sx, ex,  1
+		sy, ey, iy = ey, sy, -1
+	elseif self.renderorder == "left-down" then
+		sx, ex, ix = ex, sx, -1
+		sy, ey, iy = sy, ey,  1
+	elseif self.renderorder == "left-up" then
+		sx, ex, ix = ex, sx, -1
+		sy, ey, iy = ey, sy, -1
+	end
+
+	for by=sy, ey, iy do
+		for bx=sx, ex, ix do
 			if bx >= 1 and bx <= mx and by >= 1 and by <= my then
 				for _, batches in pairs(layer.batches.data) do
 					local batch = batches[by] and batches[by][bx]

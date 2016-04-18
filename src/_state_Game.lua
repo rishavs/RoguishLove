@@ -39,10 +39,10 @@ function _state_Game:init()
     windowHeight = love.graphics.getHeight()
 
 	-- Load map
-	self.map = STI.new("modules/base/maps/testMap.lua")
+	self.map = STI.new("modules/base/maps/tileMap.lua")
     
-	-- print(STI._VERSION) -- Print STI Version
-	-- print(self.map.tiledversion)    -- Print Tiled Version
+	print(STI._VERSION) -- Print STI Version
+	print(self.map.tiledversion)    -- Print Tiled Version
     
     self.mapWidthPixels = self.map.width * self.map.tilewidth 
     self.mapHeightPixels = self.map.height * self.map.tileheight
@@ -69,8 +69,8 @@ function _state_Game:draw()
     -- Everything inside the camera goes here
     ------------------------------------------------
     
-    -- Draw Range culls unnecessary tiles
-    self.map:setDrawRange(-translateX, -translateY, windowWidth, windowHeight)
+    -- Draw Range culls unnecessary tiles. this is currently causing issues with the bottom edge detection
+    -- self.map:setDrawRange(0, 0, windowWidth, windowHeight)
     self.map:draw()
 
     love.graphics.draw(img, 100, 100, math.rad(90), 1, 1, imgWidth / 2, imgHeight / 2)
@@ -92,7 +92,7 @@ end
 function _state_Game:update(dt)
     self.map:update(dt)
 
-    -- Edge Panning
+    -- Camera Edge definition
     local mouseX, mouseY = love.mouse.getPosition( )
     local screenBottomEdge = windowHeight * screenEdge 
     local screenTopEdge = windowHeight * (1 - screenEdge)
@@ -101,6 +101,7 @@ function _state_Game:update(dt)
     
     local camX, camY = self.cam:position()
     
+    -- Camera Edge panning
     if mouseY > screenBottomEdge and camY < self.mapHeightPixels then 
         self.cam:move(0, camSpeed * dt )
     elseif mouseY < screenTopEdge and camY > 0 then 
@@ -132,7 +133,8 @@ function _state_Game:keyreleased(key)
         Gamestate.switch(_state_MainMenu)
     end    
     if key == 'space' then
-        self.cam:lookAt(30, 30)
+        self.cam:lookAt(0, 0)
+        self.cam:zoomTo(1)
     end
  end
 
@@ -150,6 +152,8 @@ end
 
 function _state_Game:mousereleased(x, y, button)
     print ("MButton :" .. button .. ", X :" .. x .. ", Y :" .. y)
+    print (self.map:convertScreenToTile (x, y))
+    print (self.map:convertScreenToStaggeredTile (x, y))
 end
 
 return _state_Game
