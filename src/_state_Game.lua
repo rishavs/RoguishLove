@@ -28,8 +28,7 @@ function _state_Game:init()
     -- State Declarations ----------------------
     local camX, camY, camZoom, camRot = 0, 0, 1, 0
     
-    camSpeed = 1000 -- Scrolling speed for the camera
-    camAcclr = 10  -- Acceleration factor for the camera
+    camAcclr = 200000000 -- Acceleration factor for the camera
     screenEdge = 0.98   -- The area at the screen edge where panning needs to start. eg after 98% of screen size. value < 1
     --------------------------------------------
     
@@ -101,15 +100,17 @@ function _state_Game:update(dt)
     
     local camX, camY = self.cam:position()
     
+    local camMoveDist = camAcclr * dt * dt * dt 
+    
     -- Camera Edge panning
     if mouseY > screenBottomEdge and camY < self.mapHeightPixels then 
-        self.cam:move(0, camSpeed * dt )
+        self.cam:move(0, camMoveDist)
     elseif mouseY < screenTopEdge and camY > 0 then 
-        self.cam:move(0, -camSpeed * dt)    
+        self.cam:move(0, -camMoveDist)    
     elseif mouseX > screenRightEdge and camX < self.mapWidthPixels then 
-        self.cam:move(camSpeed * dt , 0)    
+        self.cam:move(camMoveDist , 0)    
     elseif mouseX < screenLeftEdge and camX > 0 then 
-        self.cam:move(-camSpeed * dt , 0)
+        self.cam:move(-camMoveDist , 0)
     end
     
     anim_test:update(dt)
