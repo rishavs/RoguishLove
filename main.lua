@@ -9,6 +9,8 @@ Camera = require "libs.hump.camera"
 STI = require "libs.sti"
 LDebug = require "libs.lovedebug.lovedebug"
 Inspect = require 'libs.inspect.inspect'
+ECS =  require 'libs.tiny-ecs.tiny'
+
 ------------------------------------------------
 -- Componants
 ------------------------------------------------

@@ -106,19 +106,6 @@ return {
       objects = {
         {
           id = 1,
-          name = "",
-          type = "",
-          shape = "rectangle",
-          x = 0,
-          y = 3136,
-          width = 0,
-          height = 0,
-          rotation = 0,
-          visible = true,
-          properties = {}
-        },
-        {
-          id = 4,
           name = "startPoint",
           type = "",
           shape = "polygon",
@@ -137,7 +124,7 @@ return {
           properties = {}
         },
         {
-          id = 6,
+          id = 2,
           name = "endPoint",
           type = "",
           shape = "polygon",
