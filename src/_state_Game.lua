@@ -34,7 +34,7 @@ function _state_Game:init()
     local camX, camY, camZoom, camRot = 0, 0, 1, 0
     
     
-    local  screenEdge = 0.95   -- The area at the screen edge where panning needs to start. eg after 98% of screen size. value < 1
+    screenEdge = 0.95   -- The area at the screen edge where panning needs to start. eg after 98% of screen size. value < 1
     --------------------------------------------
     
     self.cam = Camera(camX, camY, camZoom, camRot)
@@ -62,18 +62,18 @@ function _state_Game:init()
     local player
     for k, object in pairs(self.map.objects) do
         if object.name == "startPoint" then
-            startPoint = object
+            startPointX, startPointY = self.cam:worldCoords(object.x, object.y)
         elseif object.name == "endPoint" then
-            endPoint = object
+            endPointX, endPointY = self.cam:worldCoords(object.x, object.y)
         end
     end
     
---    print(Inspect(startPoint))
---    print(Inspect(endPoint))
+--    print("startpoint", startPointX, startPointY)
+--    print("endPoint", Inspect(endPoint))
 --    print(startPoint.x, startPoint.y)
     -- Create a player object at startPoint
     
-	img = love.graphics.newImage("modules/base/assets/art/arrow.png")    
+    img = love.graphics.newImage("modules/base/assets/art/arrow.png")    
     imgWidth = img:getWidth()
     imgHeight = img:getHeight()
     
@@ -99,7 +99,7 @@ function _state_Game:draw()
     -- self.map:setDrawRange(0, 0, windowWidth, windowHeight)
     self.map:draw()
 
-    love.graphics.draw(img, startPoint.x, startPoint.y, math.rad(90), 1, 1, imgWidth / 2, imgHeight / 2)
+    love.graphics.draw(img, startPointX, startPointY, 0, 1, 1, imgWidth / 2, imgHeight / 2)
 
     anim_test:draw(sprite_img, 300, 500)
 
@@ -127,6 +127,7 @@ function _state_Game:update(dt)
     
     camX, camY = self.cam:position()
     
+    -- Camera edge panning. Currently starts too slow and builds up way too much velocity. need to set a max speed clamper
     local panEdgeSpeed = 10
     if mouseY > panBottomEdge and camY < self.mapHeightPixels then 
         self.cam:move(0, (camY + panEdgeSpeed) * dt)
@@ -178,8 +179,8 @@ end
 
 function _state_Game:mousereleased(x, y, button)
     print ("MButton :" .. button .. ", X :" .. x .. ", Y :" .. y)
-    print (self.cam:worldCoords (x, y))
-    print (self.cam:cameraCoords (x, y))
+    print ("worldCoord", self.cam:worldCoords (x, y))
+    print ("camCoord", self.cam:cameraCoords (x, y))
 end
 
 return _state_Game
