@@ -55,27 +55,43 @@ function _state_Game:init()
 --    print (self.map.width, self.map.tilewidth, self.mapWidthPixels )
     
     -- Create a sprite layer
-    local _layer_sprites = self.map:addCustomLayer("Sprites", 4)
+    _layer_Sprites = self.map:addCustomLayer("Sprites", 4)
 
 
     -- Get spawn & Destination points
-    local player
+
     for k, object in pairs(self.map.objects) do
         if object.name == "startPoint" then
             startPointX, startPointY = self.cam:worldCoords(object.x, object.y)
+            print("startpoint", object.x, object.y)
+            print("startpoint WORLD COORD", startPointX, startPointY)
+            print("NUM WORLD COORD", self.cam:worldCoords(320, 2880)) --8592054888
+            print("startpoint CAM COORD", self.cam:cameraCoords(708, 1602))
+            print("startpoint isoToScreen", self.map:convertIsometricTileToScreen (object.x, object.y)	)
+            print("startpoint isoToScreen", self.map:convertIsometricTileToScreen (self.cam:worldCoords(320, 2880)))
+            print("startpoint ScreenToIso", self.map:convertScreenToIsometricTile (self.cam:worldCoords(320, 2880)))
+            
+            
+            print("startpoint ScreenToIso", self.map:convertScreenToIsometricTile (320, 2880)	)
+            
+            
+            
         elseif object.name == "endPoint" then
-            endPointX, endPointY = self.cam:worldCoords(object.x, object.y)
+            endPointX, endPointY = self.cam:cameraCoords(object.x, object.y)
+--            print("endpoint", object.x, object.y)
         end
     end
     
---    print("startpoint", startPointX, startPointY)
+
 --    print("endPoint", Inspect(endPoint))
---    print(startPoint.x, startPoint.y)
+
+
     -- Create a player object at startPoint
     
     img = love.graphics.newImage("modules/base/assets/art/arrow.png")    
     imgWidth = img:getWidth()
     imgHeight = img:getHeight()
+    
     
     -- Just a test animated sprite for now
     sprite_img = love.graphics.newImage('modules/base/assets/art/sprites/knight.png')
@@ -99,7 +115,7 @@ function _state_Game:draw()
     -- self.map:setDrawRange(0, 0, windowWidth, windowHeight)
     self.map:draw()
 
-    love.graphics.draw(img, startPointX, startPointY, 0, 1, 1, imgWidth / 2, imgHeight / 2)
+    love.graphics.draw(img, 708, 1602, 0, 1, 1, imgWidth / 2, imgHeight / 2)
 
     anim_test:draw(sprite_img, 300, 500)
 
@@ -128,15 +144,16 @@ function _state_Game:update(dt)
     camX, camY = self.cam:position()
     
     -- Camera edge panning. Currently starts too slow and builds up way too much velocity. need to set a max speed clamper
-    local panEdgeSpeed = 10
+    local panEdgeStartSpeed = 100
+    local panEdgeMaxSpeed = 1000
     if mouseY > panBottomEdge and camY < self.mapHeightPixels then 
-        self.cam:move(0, (camY + panEdgeSpeed) * dt)
+        self.cam:move(0, (camY + panEdgeStartSpeed) * dt)
     elseif mouseY < panTopEdge and camY > 0 then 
-        self.cam:move(0, - (camY + panEdgeSpeed) * dt)    
+        self.cam:move(0, - (camY + panEdgeStartSpeed) * dt)    
     elseif mouseX > panRightEdge and camX < self.mapWidthPixels then 
-        self.cam:move((camX + panEdgeSpeed) * dt , 0)    
+        self.cam:move((camX + panEdgeStartSpeed) * dt , 0)    
     elseif mouseX < panLeftEdge and camX > 0 then 
-        self.cam:move(-(camX + panEdgeSpeed) * dt , 0)
+        self.cam:move(-(camX + panEdgeStartSpeed) * dt , 0)
     end
     
     anim_test:update(dt)
