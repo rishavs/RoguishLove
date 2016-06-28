@@ -1,15 +1,61 @@
 debug = true
 
+-- Another solution generates Voronoi cells from Delaunay triangulation. The page Voronoi diagram/J/Delaunay triangulation also contains a convex hull algorithm. This is a vector based approach instead of a pixel based approach and is about twice as fast for this task's example. To be experimented later
+
 local _voronoi = require "LuaFortune.voronoi"
 local _points = require "LuaFortune.points"
 
-local blue_PointsList = {}
+local inspect = require "inspect"
+
+
+
 local loveform_PointsList = {}
 
-local Voronoi_EdgesList = {}
-local loveform_EdgesList = {}
+local voronoiDiag = {
+    Polygons = {
+        -- index = 0,
+        -- center = {},
+        -- corners = {}
+        
+    },
+    Faces = {
+        index = 0,
+        
+        neighbors = {},
+        borders = {},
+        corners = {},
+        
+        point = {0,0},
+        water = false,
+        ocean = false,
+        coast = false,
+        border = false,
+        biome = "string",
+        elevation = 0,
+        moisture = 0
+    },
+    Edges = {
+        index = 0,
+        
+        joins = {},
+        continues = {},
+        endpoints = {},
+        
+        d0 = 0, -- Delauney edge
+        d1 = 0, -- Delauney edge
+        v0 = 0, -- voronoi edge
+        v1 = 0, -- voronoi edge
+        midpoint = 0, -- halfway between v0,v1
+        river = 0    -- volume of water, or 0
+    },
+    Vertices = {
+        
+        touches = {},
+        protrudes = {},
+        adjacent = {},
 
-local Voronoi_FacesList ={}
+    }
+}
 
 function love.load(arg)
     
@@ -21,18 +67,30 @@ function love.load(arg)
 
     print("Generating Points field....")
 
-    blue_PointsList = _points.blue_noise(0, love.graphics.getWidth(), 0, love.graphics.getHeight(), 10, 40)
-    -- (min_x, max_x, min_y, max_y, missed_points, min_dist, rnd_func)
+    voronoiDiag.Vertices = pointsSetGenerator (500,0.4)
+    -- (min_x, max_x, min_y, max_y, missed_points, min_dist, rnd_func) 3,20 seems the best numbers
     local count = 0
-    for _, point in ipairs(blue_PointsList) do
+    for _, point in ipairs(voronoiDiag.Vertices) do
         -- print("- "..point.x..", "..point.y)
-        table.insert (loveform_PointsList, point.x)
-        table.insert (loveform_PointsList, point.y)
+        local pointX = math.floor(point.x+0.5)  -- Making all points have integet x and y values
+        local pointY = math.floor(point.y+0.5)  -- Making all points have integet x and y values
+        
+        table.insert (loveform_PointsList, pointX)
+        table.insert (loveform_PointsList, pointY)
+        
+        local tempObj = { index = 0, center = {}}
+        tempObj.center.x = pointX
+        tempObj.center.y = pointY
         
         count = count + 1
+
+        tempObj.index = count
+
+        voronoiDiag.Polygons[count] = tempObj
         
+        print(inspect(tempObj))
     end
-    
+
     print ("Points field generated!")
     print ("Total Number of Points =", count)
  
@@ -58,10 +116,10 @@ function love.load(arg)
       -- voronoi = null;
       -- points = null;
       
-    Voronoi_EdgesList = _voronoi.fortunes_algorithm(blue_PointsList,0,0,love.graphics.getWidth(),love.graphics.getHeight())  
+    voronoiDiag.Edges = _voronoi.fortunes_algorithm(voronoiDiag.Vertices,0,0,love.graphics.getWidth(),love.graphics.getHeight())  
       
     local count = 0
-    for i, edge in ipairs(Voronoi_EdgesList) do
+    for i, edge in ipairs(voronoiDiag.Edges) do
         
         count = count + 1
         
@@ -69,15 +127,23 @@ function love.load(arg)
  
     print ("Total Number of Edges =", count)
     
+    voronoiDiag.Faces = _voronoi.find_faces_from_edges(voronoiDiag.Edges, voronoiDiag.Vertices)
     
-    Voronoi_FacesList = _voronoi.find_faces_from_edges(Voronoi_EdgesList, blue_PointsList)
-    
+    -- print_r(voronoiDiag)
     local count = 0
-    for _,face in ipairs(Voronoi_FacesList) do
+    for _,face in ipairs(voronoiDiag.Faces) do
         for i=#face, 1, -1 do
             count = count + 1
+            -- face[i].index = count
+            
+            -- print_r(face[i])
         end
     end
+    
+    
+    -- print(inspect(voronoiDiag))
+    io.output("foo.lua")   -- creates file "foo", should set stdout to "foo"?
+    io.write(inspect(voronoiDiag)) 
     print ("Total Number of Faces =", count)
         
     local step2End_time = love.timer.getTime()
@@ -85,9 +151,14 @@ function love.load(arg)
     print(string.format("It took %.3f milliseconds to Generate Voronoi Graph", 1000 * (step2End_time - step1End_time)))
     
     ----------------------------------------------
+    -- Step 3: Create Graph/Grid relations
+    ----------------------------------------------
+    
+    
+    ----------------------------------------------
     -- Step 3: Assign Elevations
     ----------------------------------------------    
-    
+
     
     
     ----------------------------------------------
@@ -106,17 +177,26 @@ function love.draw(dt)
     love.graphics.points(loveform_PointsList)
     
     love.graphics.setColor(255,255,255)
-    for _,edge in ipairs(Voronoi_EdgesList) do
-        love.graphics.line(edge.p1.x,edge.p1.y,edge.p2.x,edge.p2.y)
-        love.graphics.line(edge.p1.x,edge.p1.y,edge.p2.x,edge.p2.y)
-    end
+    -- for _,edge in ipairs(voronoiDiag.Edges) do
+        -- love.graphics.line(edge.p1.x,edge.p1.y,edge.p2.x,edge.p2.y)
+        -- love.graphics.line(edge.p1.x,edge.p1.y,edge.p2.x,edge.p2.y)
+    -- end
         
     -- love.graphics.setColor(0,255,0)
-    -- for _,face in ipairs(Voronoi_FacesList) do
-        -- for i=#face, 1, -1 do
-            -- love.graphics.line(face[i].x,face[i].y,face[i%#face+1].x,face[i%#face+1].y)
-        -- end
-    -- end
+    
+    local count = 0
+    for _,face in ipairs(voronoiDiag.Faces) do
+        for i=#face, 1, -1 do
+            -- Draw the faces
+            love.graphics.setColor(50,50,50)
+            love.graphics.line(face[i].x, face[i].y, face[i%#face+1].x, face[i%#face+1].y)
+            
+            -- Draw the corners of each face
+            love.graphics.setColor(0,255,0)
+            love.graphics.points (face[i].x,face[i].y)
+        end
+    end
+
     love.graphics.print(love.timer.getFPS())
 end
 
@@ -124,83 +204,53 @@ function love.update(dt)
 
 end
 
--- public class Center {
-    -- public var index:int;
-  
-    -- public var point:Point;  // location
-    -- public var water:Boolean;  // lake or ocean
-    -- public var ocean:Boolean;  // ocean
-    -- public var coast:Boolean;  // land polygon touching an ocean
-    -- public var border:Boolean;  // at the edge of the map
-    -- public var biome:String;  // biome type (see article)
-    -- public var elevation:Number;  // 0.0-1.0
-    -- public var moisture:Number;  // 0.0-1.0
-
-    -- public var neighbors:Vector.<Center>;
-    -- public var borders:Vector.<Edge>;
-    -- public var corners:Vector.<Corner>;
--- };
-
--- public class Corner {
-    -- public var index:int;
-
-    -- public var point:Point;  // location
-    -- public var ocean:Boolean;  // ocean
-    -- public var water:Boolean;  // lake or ocean
-    -- public var coast:Boolean;  // touches ocean and land polygons
-    -- public var border:Boolean;  // at the edge of the map
-    -- public var elevation:Number;  // 0.0-1.0
-    -- public var moisture:Number;  // 0.0-1.0
-
-    -- public var touches:Vector.<Center>;
-    -- public var protrudes:Vector.<Edge>;
-    -- public var adjacent:Vector.<Corner>;
-
-    -- public var river:int;  // 0 if no river, or volume of water in river
-    -- public var downslope:Corner;  // pointer to adjacent corner most downhill
-    -- public var watershed:Corner;  // pointer to coastal corner, or null
-    -- public var watershed_size:int;
--- };
-
--- public class Edge {
-    -- public var index:int;
-    -- public var d0:Center, d1:Center;  // Delaunay edge
-    -- public var v0:Corner, v1:Corner;  // Voronoi edge
-    -- public var midpoint:Point;  // halfway between v0,v1
-    -- public var river:int;  // volume of water, or 0
--- };
-
-function print_r ( t )  
-    local print_r_cache={}
-    local function sub_print_r(t,indent)
-        if (print_r_cache[tostring(t)]) then
-            print(indent.."*"..tostring(t))
-        else
-            print_r_cache[tostring(t)]=true
-            if (type(t)=="table") then
-                for pos,val in pairs(t) do
-                    if (type(val)=="table") then
-                        print(indent.."["..pos.."] => "..tostring(t).." {")
-                        sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
-                        print(indent..string.rep(" ",string.len(pos)+6).."}")
-                    elseif (type(val)=="string") then
-                        print(indent.."["..pos..'] => "'..val..'"')
-                    else
-                        print(indent.."["..pos.."] => "..tostring(val))
-                    end
-                end
-            else
-                print(indent..tostring(t))
+function pointsSetGenerator (n,s)
+    local pointsList = {} -- output
+    local pointsObj = {}
+    
+    -- n = number of points, d = max deviance allowed. between 0 and 1
+    local scrW = love.graphics.getWidth()
+    local scrH = love.graphics.getHeight()
+    
+    -- n * d^2 = scrW * scrH
+    local d = roundToInt(math.sqrt(scrW * scrH / n))
+    -- print(d)
+    
+    -- set random seed for maths lib
+    math.randomseed( os.time() )
+    
+    -- Generate points set 
+    local count = 0
+    local de = (d-d*s)          -- max distance form the edge
+    for y = de, scrH, d do
+        for x = de, scrW,d do
+            -- apply deviance to get randomness
+            local dx = x + (d * math.random(0, s*100)/100 * ((math.random(1,2)*2)-3))
+            local dy = y + (d * math.random(0, s*100)/100 * ((math.random(1,2)*2)-3))
+            
+            dx = roundToInt(dx)
+            dy = roundToInt(dy)
+            -- discard all points where the distance from the edge is less than de
+            if (dx + d * s) <  scrW and (dy + d * s) < scrH then
+                table.insert(pointsList, dx)
+                table.insert(pointsList, dy)
+                
+                table.insert(pointsObj, {x = dx, y = dy})
+               
+                
+                count = count + 1
+                
+                -- print (d, count, scrW, scrH, x, y, dx, dy)
             end
+            
         end
     end
-    if (type(t)=="table") then
-        print(tostring(t).." {")
-        sub_print_r(t,"  ")
-        print("}")
-    else
-        sub_print_r(t,"  ")
-    end
-    print()
+    -- print (inspect(pointsObj))
+    
+    -- return pointsList
+    return pointsObj
 end
 
+function roundToInt(n)
+    return (math.floor(n+0.5))
+end

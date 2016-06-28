@@ -11,7 +11,7 @@ debug = true
 function love.load()	
     love.math.setRandomSeed(os.time()) --set the random seed
     keys = {} --an empty table where we will store key presses
-    number_cells = 100 --the number of cells we want in our diagram
+    number_cells = 1000 --the number of cells we want in our diagram
     --draw the voronoi diagram to a canvas
     voronoiDiagram = generateVoronoi(love.graphics.getWidth(), love.graphics.getHeight(), number_cells)
 end
@@ -79,8 +79,8 @@ end
  
 --CONTROL
 function love.keyreleased(key)
-    if key == ' ' then
-	voronoiDiagram = generateVoronoi(love.window.getWidth(), love.window.getHeight(), number_cells)
+    if key == 'space' then
+	voronoiDiagram = generateVoronoi(love.graphics.getWidth(), love.graphics.getHeight(), number_cells)
     elseif key == 'escape' then
 	love.event.quit()
     end
