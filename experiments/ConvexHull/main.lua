@@ -6,21 +6,25 @@ local points_Count = 0
 local points_Obj = {}
 
 local polies_Count = 0
-local polies_Obj = {}
+local vpolies_Obj = {}
+
+local window_slope = 0
 
 function love.load(arg)
 
+    window_slope = -love.graphics.getHeight()/love.graphics.getWidth()
+    print(window_slope)
 end
 
 function love.draw(dt)
     love.graphics.print("FPS: "..tostring(love.timer.getFPS( )), 10, 10)
     
-    if next(polies_Obj) ~= nil then                     -- Only iterate when the obj has content
-        for _, poly in pairs(polies_Obj) do
+    if next(vpolies_Obj) ~= nil then                     -- Only iterate when the obj has content
+        for _, vpoly in pairs(vpolies_Obj) do
 
-            love.graphics.setColor(poly.color)
-            if love.math.isConvex( poly.vertices_List ) then
-                love.graphics.polygon('fill', poly.vertices_List)
+            love.graphics.setColor(vpoly.color)
+            if  vpoly.poly_Obj:validate( ) then
+                love.graphics.polygon('fill', vpoly.poly_Obj:getPoints( ))
             else
                 print("POLY IS CONCAVE!! RUN!!")
             end
@@ -44,43 +48,80 @@ end
 function love.mousepressed(x, y, button, istouch)
    if button == 1 then
         add_to_points_Obj(x, y)
-        add_to_polies_Obj()
+        add_to_vpolies_Obj()
    end
-   print(inspect(points_Obj))
-   -- print(inspect(polies_Obj))
+   -- print(inspect(points_Obj))
+   -- print(inspect(vpolies_Obj))
 end
 
 --------------------------------------------------------------------
 
-function add_to_polies_Obj()
+function add_to_vpolies_Obj()
     if next(points_Obj) ~= nil then
         for _, point in pairs(points_Obj) do
+            
+            print("Current point  index", point.index)
+            print("...........................")
+            
             if points_Count <=1 then
                 -- vertices are mentioned clockwise starting from North/12'0 clock
+                shape = love.physics.newPolygonShape( 0,0, love.graphics.getWidth(), 0, love.graphics.getWidth(), love.graphics.getHeight(), 0,love.graphics.getHeight() )
                 -- shape = love.physics.newChainShape( loop, 
                                 -- 0,0, love.graphics.getWidth(), 0, love.graphics.getWidth(), love.graphics.getHeight(), 0,love.graphics.getHeight() )
                 -- shape.site= {u=point.x, v=point.y}
                 -- shape.color =  {get_random_color()}
                 vpoly = { 
+                    index = point.index,
                     site = {u=point.x, v=point.y},
                     color =  {get_random_color()},
-                    vertices = {
-                        {x = 0, y = 0}, 
-                        {x = love.graphics.getWidth(), y = 0},
-                        {x = love.graphics.getWidth(), y = love.graphics.getHeight()},
-                        {x = 0, y = love.graphics.getHeight()}
-                        },
-                    vertices_List = {0,0, love.graphics.getWidth(), 0, love.graphics.getWidth(), 
-                    love.graphics.getHeight(), 0,love.graphics.getHeight()}
-                }
-            else
-                print(point.x, point.y .."\n")
+                    poly_Obj = shape
+                    }
 
+            else
+                -- print(point.x, point.y .."\n")
+                
+                
+                -- Find the polygon inside which this new point lies 
+                for _, vpoly in pairs(vpolies_Obj) do
+                   if vpoly.poly_Obj:testPoint( 0, 0, 0, point.x, point.y ) then
+                   
+                        print ("inside polygon with index", vpoly.index)
+                        
+                        -- now that we know its inside this polygon, time to draw a perpendicular bisector between the two points
+                        
+                        
+                        -- get perpendicular biscetor
+                        local xm, ym, slope = get_perpendicular_bisector (point.x, point.y)
+                        
+                        -- get intersection points with containing poly
+                        
+                        -- split poly
+                        
+                        -- repeat task with all neighbouring polies which share a side with parent poly
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        break
+                   end
+                end
 
             end
         end
         
-        table.insert(polies_Obj, vpoly)
+        table.insert(vpolies_Obj, vpoly)
             
     end
     
@@ -93,53 +134,7 @@ function add_to_points_Obj (x, y)
 end
 
 function is_point_in_polygon(x, y)
-    -- //Cannot be part of empty polygon
-    -- if (polygon.Count == 0)
-    -- {
-        -- return false;
-    -- }
-
-    -- //With 1-pt polygon, only if it's the point
-    -- if (polygon.Count == 1)
-    -- {
-        -- return polygon[0] == testPoint;
-    -- }
-
-    -- //n>2 Keep track of cross product sign changes
-    -- var pos = 0;
-    -- var neg = 0;
-
-    -- for (var i = 0; i < polygon.Count; i++)
-    -- {
-        -- //If point is in the polygon
-        -- if (polygon[i] == testPoint)
-            -- return true;
-
-        -- //Form a segment between the i'th point
-        -- var x1 = polygon[i].X;
-        -- var y1 = polygon[i].Y;
-
-        -- //And the i+1'th, or if i is the last, with the first point
-        -- var i2 = i < polygon.Count - 1 ? i + 1 : 0;
-
-        -- var x2 = polygon[i2].X;
-        -- var y2 = polygon[i2].Y;
-
-        -- var x = testPoint.X;
-        -- var y = testPoint.Y;
-
-        -- //Compute the cross product
-        -- var d = (x - x1)*(y2 - y1) - (y - y1)*(x2 - x1);
-
-        -- if (d > 0) pos++;
-        -- if (d < 0) neg++;
-
-        -- //If the sign changes, then point is outside
-        -- if (pos > 0 && neg > 0)
-            -- return false;
-    -- }
-
-    -- //If no change in direction, then on same side of all segments, and thus inside
+    
     return true;
 end
 
@@ -158,7 +153,7 @@ function get_random_color()
     return love.math.random(0,255), love.math.random(0,255), love.math.random(0,255)
 end
 
-function get_potential_bisector(x1,y1, x2, y2) 
+function get_perpendicular_bisector(x1,y1, x2, y2) 
     -- mid point calclulation
     xm = (x1+x2)/2
     ym = (y1+y2)/2
@@ -167,5 +162,20 @@ function get_potential_bisector(x1,y1, x2, y2)
     slope = (y2-y1)/(x2-x1)
     
     return xm, ym, slope
-    
+end
+
+function find_line_intersection (x1, y1, x2, y2, x3, y3, x4, y4)
+    d = (y4-y3)*(x2-x1)-(x4-x3)*(y2-y1)
+    Ua_n = ((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3))
+    Ub_n = ((x2-x1)*(y1-y3)-(y2-y1)*(x1-x3))
+    Ua = Ua_n / d
+    Ub = Ub_n / d
+    if d ~= 0 then
+        x=x1+Ua*(x2-x1)
+        y=y1+Ua*(y2-y1)
+        print(x,y)
+        ellipse(x,y,20,20)
+    else
+        print("parallel")
+    end
 end
