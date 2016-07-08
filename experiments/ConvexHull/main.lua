@@ -2,18 +2,15 @@ debug = true
 
 local inspect = require "inspect"
 
-local points_Count = 0
-local points_Obj = {}
-
-local polies_Count = 0
+local vpolies_Count = 0
 local vpolies_Obj = {}
 
 local window_slope = 0
 
 function love.load(arg)
 
-    window_slope = -love.graphics.getHeight()/love.graphics.getWidth()
-    print(window_slope)
+    -- window_slope = -love.graphics.getHeight()/love.graphics.getWidth()
+    -- print(window_slope)
 end
 
 function love.draw(dt)
@@ -28,27 +25,21 @@ function love.draw(dt)
             else
                 print("POLY IS CONCAVE!! RUN!!")
             end
-        end
-    end   
-
-    if next(points_Obj) ~= nil then                     -- Only iterate when the obj has content
-        for _, point in pairs(points_Obj) do
+            
             love.graphics.setColor(50,50,50)    
             love.graphics.setPointSize(3)
-            love.graphics.points(point.x, point.y)
-            love.graphics.print(point.x .. ", " .. point.y, point.x - 30, point.y - 30 )
+            love.graphics.points(vpoly.site.x, vpoly.site.y)
+            love.graphics.print(vpoly.site.x .. ", " .. vpoly.site.y, vpoly.site.x - 30, vpoly.site.y - 30 )
+            
         end
-    end
-    
-
-
+    end   
 end
 
 
 function love.mousepressed(x, y, button, istouch)
    if button == 1 then
-        add_to_points_Obj(x, y)
-        add_to_vpolies_Obj()
+        -- add_to_points_Obj(x, y)
+        add_to_vpolies_Obj(x, y)
    end
    -- print(inspect(points_Obj))
    -- print(inspect(vpolies_Obj))
@@ -56,98 +47,69 @@ end
 
 --------------------------------------------------------------------
 
-function add_to_vpolies_Obj()
-    if next(points_Obj) ~= nil then
-        for _, point in pairs(points_Obj) do
-            
-            print("Current point  index", point.index)
-            print("...........................")
-            
-            if points_Count <=1 then
-                -- vertices are mentioned clockwise starting from North/12'0 clock
-                shape = love.physics.newPolygonShape( 0,0, love.graphics.getWidth(), 0, love.graphics.getWidth(), love.graphics.getHeight(), 0,love.graphics.getHeight() )
-                -- shape = love.physics.newChainShape( loop, 
-                                -- 0,0, love.graphics.getWidth(), 0, love.graphics.getWidth(), love.graphics.getHeight(), 0,love.graphics.getHeight() )
-                -- shape.site= {u=point.x, v=point.y}
-                -- shape.color =  {get_random_color()}
-                vpoly = { 
-                    index = point.index,
-                    site = {u=point.x, v=point.y},
-                    color =  {get_random_color()},
-                    poly_Obj = shape
-                    }
+function add_to_vpolies_Obj(sitex, sitey)
+    
+    vpolies_Count = vpolies_Count + 1
+    local temp_poly = {}
+    
+    -- If this is the very first site
+    if next(vpolies_Obj) == nil then
+        temp_poly = { 
+            index = vpolies_Count,
+            site = {x=sitex, y=sitey},
+            color =  {get_random_color()},
+            poly_Obj =  love.physics.newPolygonShape ( 
+                0,0,
+                love.graphics.getWidth(), 0, 
+                love.graphics.getWidth(), love.graphics.getHeight(), 
+                0, love.graphics.getHeight() 
+            ),
+            neighbour_indices = {}
+        }
 
-            else
-                -- print(point.x, point.y .."\n")
+    else
+        -- At least 1 parent site exists
+        -- Find the polygon inside which this new point lies 
+        for _, vpoly in pairs(vpolies_Obj) do
+            if vpoly.poly_Obj:testPoint( 0, 0, 0, sitex, sitey ) then
+           
+                print ("inside polygon with index", vpoly.index)
+                
+                -- now that we know its inside this polygon, time to draw a perpendicular bisector between the two points
                 
                 
-                -- Find the polygon inside which this new point lies 
-                for _, vpoly in pairs(vpolies_Obj) do
-                   if vpoly.poly_Obj:testPoint( 0, 0, 0, point.x, point.y ) then
-                   
-                        print ("inside polygon with index", vpoly.index)
-                        
-                        -- now that we know its inside this polygon, time to draw a perpendicular bisector between the two points
-                        
-                        
-                        -- get perpendicular biscetor
-                        local xm, ym, slope = get_perpendicular_bisector (point.x, point.y)
-                        
-                        -- get intersection points with containing poly
-                        
-                        -- split poly
-                        
-                        -- repeat task with all neighbouring polies which share a side with parent poly
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        break
-                   end
-                end
-
+                -- get perpendicular biscetor
+                local xm, ym, slope = get_perpendicular_bisector (sitex, sitey, vpoly.site.x, vpoly.site.y)
+                print (xm, ym, slope)
+                
+                local x1, y1, x2, y2, x3, y3, x4, y4, x5, y5, x6, y6, x7, y7, x8, y8 = vpoly.poly_Obj:getPoints()
+                local temp_polyVert_obj = {{x1, y1}, {x2, y2}, {x3, y3}, {x4, y4}, {x5, y5}, {x6, y6}, {x7, y7}, {x8, y8}}
+                print("Looking at poly: ", vpoly.index)
+                print(inspect(temp_polyVert_obj))
+                
+                -- get intersection points with containing poly
+                p1x, p1y, p2x,p2y = get_line_poly_intersection(xm, ym, slope, temp_polyVert_obj)
+                print (p1x, p1y, p2x, p2y)
+              
+                
+                
+                -- split parent poly
+                -- merge with new poly
+                
+                -- find neighbours of the new poly and add to dataset
+                
+                -- repeat task with all neighbouring polies which share a side with parent poly
+                
+                
+                break
             end
         end
-        
-        table.insert(vpolies_Obj, vpoly)
-            
     end
     
-
+    table.insert(vpolies_Obj, temp_poly)
+    -- print(inspect(temp_poly.poly_Obj:getPoints()))
 end
 
-function add_to_points_Obj (x, y)
-    points_Count = points_Count + 1
-    table.insert(points_Obj, {index= points_Count, x= x, y= y})
-end
-
-function is_point_in_polygon(x, y)
-    
-    return true;
-end
-
-function split_polygon()
-
-end
-
-function get_convex_hull()
-
-end
-
-function get_voronoi_neighbours ()          -- alll the polies which share a side
-end
 
 function get_random_color() 
     return love.math.random(0,255), love.math.random(0,255), love.math.random(0,255)
@@ -164,7 +126,25 @@ function get_perpendicular_bisector(x1,y1, x2, y2)
     return xm, ym, slope
 end
 
-function find_line_intersection (x1, y1, x2, y2, x3, y3, x4, y4)
+
+function get_line_poly_intersection(xm, ym, slope, poly_vertices)
+
+
+    -- create line segments using vertices
+    for _, vert_pair in pairs(poly_vertices) do
+        if vert_pair ~= nil then
+        
+        print(vert_pair[1], vert_pair[2])
+        
+        
+        
+        end
+    end
+    
+    return x1, y1, x2, y2
+end
+
+function find_2lines_intersection (x1, y1, x2, y2, x3, y3, x4, y4)
     d = (y4-y3)*(x2-x1)-(x4-x3)*(y2-y1)
     Ua_n = ((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3))
     Ub_n = ((x2-x1)*(y1-y3)-(y2-y1)*(x1-x3))
