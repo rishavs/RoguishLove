@@ -6,6 +6,7 @@ local parent_poly, window_poly,
     pbisector_line, connecting_line,
     mousex, mousey
 
+
 function love.load()
     
     love.physics.setMeter(1)
@@ -52,7 +53,7 @@ function love.draw()
         )
 
         
-        love.graphics.line(window_intercept.x1, window_intercept.y1, window_intercept.x2, window_intercept.y2)
+        -- love.graphics.line(window_intercept.x1, window_intercept.y1, window_intercept.x2, window_intercept.y2)
         
     end
 
@@ -61,7 +62,10 @@ function love.draw()
     end
     
     if connecting_line then
-        love.graphics.line(connecting_line.x1, connecting_line.y1, connecting_line.x2, connecting_line.y2)
+        love.graphics.push()  
+        love.graphics.setColor(50, 100, 250)
+        love.graphics.line(connecting_line[1], connecting_line[2], connecting_line[3], connecting_line[4])
+        love.graphics.pop()  
     end
 end
 
@@ -72,7 +76,7 @@ end
 
 function love.mousepressed(x, y, button, istouch)
    if button == 1 then
-        add_to_vpolies_Obj(x, y)
+        add_to_vpolies_Obj(500, 300)
    end
    -- print(inspect(points_Obj))
    -- print(inspect(vpolies_Obj))
@@ -90,29 +94,19 @@ function add_to_vpolies_Obj(sitex, sitey)
         
         print("The Perpendicular Bisector is...")
         xm, ym, bm, slope = get_perpendicular_bisector (parent_site[1], parent_site[2], sitex, sitey)
-        print(xm, ym, bm, slope)
+        -- print(xm, ym, bm, slope)
         print("Y = ".. slope .. "  X + " .. bm.. "\n")
-        
-
-        -- dist = get_distance_between_2_Points (parent_site[1], parent_site[2], sitex, sitey)
-        -- print("The Distance Between the 2 points = " .. dist)
-
-        
-        
-        -- print("The bisector intersects window at:")
-        
         window_intercept = get_window_intercept_of_line(ym, slope, xm, bm)
-        
-        -- print(window_intercept.x1, window_intercept.y1 , window_intercept.x2, window_intercept.y2)
         
         win_intercept_p1 = {window_intercept.x1, window_intercept.y1 }
         win_intercept_p2 = {window_intercept.x2, window_intercept.y2}
        
         -- Lets try another approach
         print ("Unpacking Polygon into following sides:")
+        
         local poly_sides = unpack_polygon (window_poly:getPoints())
         
-        local intersection_point = {}
+        connecting_line = {}
         
         -- for each side, find if intersect occurs
         for _, side in pairs(poly_sides) do
@@ -122,31 +116,15 @@ function add_to_vpolies_Obj(sitex, sitey)
             print("Eqn of unpacked line is:")
             print("Y = ".. m .. "  X + " .. b)
 
-              
-            
-            -- if side.y2 == side.y1 then
-                -- local m = 0
-                -- local b = y1
-                
-                -- intersection_point.x = (b - bm)/(slope)
-                -- intersection_point.y = b
-                
-            -- elseif side.x2 == side.x1 then
-                -- local x = x1
-                -- local b = y1 - (m * x)
-                -- intersection_point.x = x1
-                -- intersection_point.y = ((slope *b) - (m * bm))/(slope - m)
-            -- else
-                -- m = (x2-x1)/(y2-y1)
-                -- b = y1 - (m * x1)
-                -- intersection_point.x = (b - bm)/(slope - m)
-                -- intersection_point.y = ((slope *b) - (m * bm))/(slope - m)
-            -- end
-            -- now we find intersection point
             local temp_point = get_lineEqn_intersection(slope, bm, m, b, side.x1, side.y1, side.x2, side.y2)
-            print("Intersection point is: ")
-            print(inspect(temp_point))
-
+            if temp_point[1] and temp_point[2] then
+                print("Intersection point is: ")
+                -- print(inspect(temp_point))
+                print(temp_point[1])
+                print(temp_point[2])
+                table.insert(connecting_line, temp_point[1])
+                table.insert(connecting_line, temp_point[2])
+            end
             
         end
         
@@ -258,38 +236,37 @@ function get_lineEqn_from_segment (x1, y1, x2, y2)
         m = (y2-y1)/(x2-x1)
         
         b = y1 - (m * x1)
-        print("The Line eqn for points ".. "[" .. x1 .. ", " .. y1 .. "] & [" .. x2 .. ", " .. y2 .. "]")
-        print("m = " .. m .. ", b = " .. b)
+        -- print("The Line eqn for points ".. "[" .. x1 .. ", " .. y1 .. "] & [" .. x2 .. ", " .. y2 .. "]")
+        -- print("m = " .. m .. ", b = " .. b)
     return m, b
 end
 
 function get_lineEqn_intersection (slope, bm, m, b, x1, y1, x2, y2)
-    result = false
-    print(slope, m)
-    if slope == m then
+    local result = {}
+
+    if slope == m or slope == -m then
         print("Parallel lines")
-        
-    elseif m == math.huge or m == -math.huge then
-        print("** UNHANDLED case with M = INF")
-    
-    elseif slope == math.huge or slope == -math.huge then
+    else
+        if m == math.huge or m == -math.huge then
+            -- print("** UNHANDLED case with M = INF")
+            ix = x1
+            iy = (slope * ix) + bm
+        elseif slope == math.huge or slope == -math.huge then
             print("** UNHANDLED case with SLOPE = INF")
-            
-    elseif slope > -math.huge and slope < math.huge and m > -math.huge and m < math.huge  then
-        if m == 0 and b == 0 then
-            print("** UNHANDLED case with m")
+            ix = b
+            iy = (m * ix) + b
+                
+        elseif m == 0 then
+            -- print("** UNHANDLED case with m")
             iy = y1
             ix = (iy - bm) / slope
-        elseif slope == 0 and bm == 0 then
-            print("** UNHANDLED case with slope")
+        elseif slope == 0 then
+            print("** UNHANDLED case with slope = 0")
         else
             ix = -( (b - bm)/(m - slope))
             iy = (slope * ix) + bm
         end
-        
-
-        ix = math.abs(ix)
-        iy = math.abs(iy)
+            
         print("Testing point : " .. ix, iy)
         
         local minx, miny, maxx, maxy
@@ -305,6 +282,5 @@ function get_lineEqn_intersection (slope, bm, m, b, x1, y1, x2, y2)
             result = {ix, iy}
         end
     end
-
     return result
 end
