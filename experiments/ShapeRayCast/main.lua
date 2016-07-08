@@ -52,8 +52,7 @@ function love.draw()
             (parent_site[2] + child_site[2])/2
         )
 
-        
-        -- love.graphics.line(window_intercept.x1, window_intercept.y1, window_intercept.x2, window_intercept.y2)
+        love.graphics.line(window_intercept.x1, window_intercept.y1, window_intercept.x2, window_intercept.y2)
         
     end
 
@@ -62,10 +61,9 @@ function love.draw()
     end
     
     if connecting_line then
-        love.graphics.push()  
         love.graphics.setColor(50, 100, 250)
         love.graphics.line(connecting_line[1], connecting_line[2], connecting_line[3], connecting_line[4])
-        love.graphics.pop()  
+        love.graphics.setColor(255, 255, 255)
     end
 end
 
@@ -76,7 +74,7 @@ end
 
 function love.mousepressed(x, y, button, istouch)
    if button == 1 then
-        add_to_vpolies_Obj(500, 300)
+        add_to_vpolies_Obj(x, y)
    end
    -- print(inspect(points_Obj))
    -- print(inspect(vpolies_Obj))
@@ -104,7 +102,7 @@ function add_to_vpolies_Obj(sitex, sitey)
         -- Lets try another approach
         print ("Unpacking Polygon into following sides:")
         
-        local poly_sides = unpack_polygon (window_poly:getPoints())
+        local poly_sides = unpack_polygon (parent_poly:getPoints())
         
         connecting_line = {}
         
@@ -116,23 +114,17 @@ function add_to_vpolies_Obj(sitex, sitey)
             print("Eqn of unpacked line is:")
             print("Y = ".. m .. "  X + " .. b)
 
-            local temp_point = get_lineEqn_intersection(slope, bm, m, b, side.x1, side.y1, side.x2, side.y2)
+            local temp_point = get_lineEqn_intersection(xm, ym, slope, bm, m, b, side.x1, side.y1, side.x2, side.y2)
             if temp_point[1] and temp_point[2] then
-                print("Intersection point is: ")
+                print("Intersection point is: [" .. temp_point[1] .. ", " .. temp_point[2] .. "]")
                 -- print(inspect(temp_point))
-                print(temp_point[1])
-                print(temp_point[2])
                 table.insert(connecting_line, temp_point[1])
                 table.insert(connecting_line, temp_point[2])
             end
-            
         end
-        
-        
-        
-        
+
         -- print("The clipping points are...")
-        -- print("Splitting the Polygon...")
+        print("Splitting the Polygon...")
     else
         print("Point " .. sitex .. ", " .. sitey .. " is OUTSIDE the polygon")
         
@@ -241,32 +233,55 @@ function get_lineEqn_from_segment (x1, y1, x2, y2)
     return m, b
 end
 
-function get_lineEqn_intersection (slope, bm, m, b, x1, y1, x2, y2)
+function get_lineEqn_intersection (Xm, Ym, slope, bm, m, b, x1, y1, x2, y2)
     local result = {}
 
     if slope == m or slope == -m then
         print("Parallel lines")
     else
-        if m == math.huge or m == -math.huge then
-            -- print("** UNHANDLED case with M = INF")
+        -- m1 = 0 and m2 = inf
+        if m == 0 and (slope == math.huge or slope == -math.huge) then
+            iy = y1
+            ix = Xm
+            print("Scenario :  m1 = 0 and m2 = inf")
+            
+        -- m1 = inf and m2 = 0
+        elseif (m == math.huge or m == -math.huge) and slope == 0 then
             ix = x1
-            iy = (slope * ix) + bm
-        elseif slope == math.huge or slope == -math.huge then
-            print("** UNHANDLED case with SLOPE = INF")
-            ix = b
-            iy = (m * ix) + b
-                
-        elseif m == 0 then
-            -- print("** UNHANDLED case with m")
+            iy = Ym
+            print("Scenario :  m1 = inf and m2 = 0")
+            
+        -- m1 = 0 and m2 = valid
+        elseif m == 0 and (slope ~= math.huge or slope ~= -math.huge) then
             iy = y1
             ix = (iy - bm) / slope
-        elseif slope == 0 then
-            print("** UNHANDLED case with slope = 0")
+            print("Scenario :  m1 = 0 and m2 = valid")
+            
+        -- m1 = valid and m2 = 0
+        elseif (m ~= math.huge or m ~= -math.huge) and slope == 0 then
+            iy = Ym
+            ix = (iy - b) / m
+            print("Scenario :  m1 = valid and m2 = 0")
+            
+        -- m1 = inf and m2 = valid
+        elseif (m == math.huge or m == -math.huge) and  (slope ~= math.huge or slope ~= -math.huge) then
+            ix = x1
+            iy = (slope * ix) + bm
+        print("Scenario :  m1 = inf and m2 = valid")
+        
+        -- m1 = valid and m2 = inf
+        elseif (m ~= math.huge or m ~= -math.huge) and  (slope == math.huge or slope == -math.huge) then
+            ix = Xm
+            iy = (m * ix) + b
+            print("Scenario :  m1 = valid and m2 = inf")
+            
+        -- m1 = valid and m2 = valid
         else
             ix = -( (b - bm)/(m - slope))
             iy = (slope * ix) + bm
+            print("Scenario :  m1 = valid and m2 = valid")
         end
-            
+        
         print("Testing point : " .. ix, iy)
         
         local minx, miny, maxx, maxy
@@ -277,7 +292,7 @@ function get_lineEqn_intersection (slope, bm, m, b, x1, y1, x2, y2)
         maxy =math.max(y1, y2)
         
         -- if (x1 <= ix and ix <= x2) or (x2 <= ix and ix <= x1) then
-        if (minx <= ix and ix <= maxx) and (miny <= iy and iy <= maxy) then
+        if (0 <= ix) and (0 <= iy) and (minx <= ix and ix <= maxx) and (miny <= iy and iy <= maxy) then
             print("Found Intersection!")
             result = {ix, iy}
         end
