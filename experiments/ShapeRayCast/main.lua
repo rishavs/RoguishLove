@@ -78,6 +78,7 @@ function love.mousepressed(x, y, button, istouch)
    end
    -- print(inspect(points_Obj))
    -- print(inspect(vpolies_Obj))
+
 end
 
 --------------------------------------------------------------------
@@ -114,17 +115,45 @@ function add_to_vpolies_Obj(sitex, sitey)
             print("Eqn of unpacked line is:")
             print("Y = ".. m .. "  X + " .. b)
 
-            local temp_point = get_lineEqn_intersection(xm, ym, slope, bm, m, b, side.x1, side.y1, side.x2, side.y2)
-            if temp_point[1] and temp_point[2] then
-                print("Intersection point is: [" .. temp_point[1] .. ", " .. temp_point[2] .. "]")
-                -- print(inspect(temp_point))
-                table.insert(connecting_line, temp_point[1])
-                table.insert(connecting_line, temp_point[2])
+            local clipping_point = get_lineEqn_intersection(xm, ym, slope, bm, m, b, side.x1, side.y1, side.x2, side.y2)
+            if clipping_point[1] and clipping_point[2] then
+                print("Intersection point is: [" .. clipping_point[1] .. ", " .. clipping_point[2] .. "]")
+                -- print(inspect(clipping_point))
+                table.insert(connecting_line, clipping_point[1])
+                table.insert(connecting_line, clipping_point[2])
             end
         end
 
         -- print("The clipping points are...")
-        print("Splitting the Polygon...")
+
+        
+        
+        local poly_points = {parent_poly:getPoints()}
+        
+        print("Splitting the Polygon with points...", inspect(poly_points))
+        local child_poly1_points = {}
+        local child_poly2_points = {}
+        
+        child_poly1_points, child_poly2_points = split_polygon  (poly_points, connecting_line[1], connecting_line[2], connecting_line[3], connecting_line[4])
+        
+        print("POLY 1 is ", inspect(child_poly1))
+        print("POLY 2 is ", inspect(child_poly2))
+        
+        -- delete old polygon
+        -- parent_poly = nil
+        -- get new polygon points
+        
+        -- create new polygons
+        
+        
+
+        
+        
+        
+        
+        
+        
+        
     else
         print("Point " .. sitex .. ", " .. sitey .. " is OUTSIDE the polygon")
         
@@ -234,6 +263,8 @@ function get_lineEqn_from_segment (x1, y1, x2, y2)
 end
 
 function get_lineEqn_intersection (Xm, Ym, slope, bm, m, b, x1, y1, x2, y2)
+
+
     local result = {}
 
     if slope == m or slope == -m then
@@ -241,19 +272,19 @@ function get_lineEqn_intersection (Xm, Ym, slope, bm, m, b, x1, y1, x2, y2)
     else
         -- m1 = 0 and m2 = inf
         if m == 0 and (slope == math.huge or slope == -math.huge) then
-            iy = y1
+            iy = Ym
             ix = Xm
             print("Scenario :  m1 = 0 and m2 = inf")
             
         -- m1 = inf and m2 = 0
         elseif (m == math.huge or m == -math.huge) and slope == 0 then
-            ix = x1
+            ix = Xm
             iy = Ym
             print("Scenario :  m1 = inf and m2 = 0")
             
         -- m1 = 0 and m2 = valid
         elseif m == 0 and (slope ~= math.huge or slope ~= -math.huge) then
-            iy = y1
+            iy = Ym
             ix = (iy - bm) / slope
             print("Scenario :  m1 = 0 and m2 = valid")
             
@@ -265,7 +296,7 @@ function get_lineEqn_intersection (Xm, Ym, slope, bm, m, b, x1, y1, x2, y2)
             
         -- m1 = inf and m2 = valid
         elseif (m == math.huge or m == -math.huge) and  (slope ~= math.huge or slope ~= -math.huge) then
-            ix = x1
+            ix = Xm
             iy = (slope * ix) + bm
         print("Scenario :  m1 = inf and m2 = valid")
         
@@ -298,4 +329,59 @@ function get_lineEqn_intersection (Xm, Ym, slope, bm, m, b, x1, y1, x2, y2)
         end
     end
     return result
+end
+
+
+function split_polygon(poly_points, x1, y1, x2, y2)
+    local poly1_points = {}
+    local poly2_points = {}
+    local points_count = table.getn(poly_points)
+    
+    for i=1, points_count, 2 do
+        print("Polymaking. Checking point " , poly_points[i], poly_points[i+1])
+        side = get_side_of_line(x1, y1, x2, y2, poly_points[i], poly_points[i+1])
+        if side == 1 then
+            table.insert(poly1_points,  poly_points[i])
+            table.insert(poly1_points,  poly_points[i+1])
+        elseif side == -1 then
+            table.insert(poly2_points,  poly_points[i])
+            table.insert(poly2_points,  poly_points[i+1])
+        elseif side == 0 then
+            table.insert(poly1_points,  poly_points[i])
+            table.insert(poly1_points,  poly_points[i+1])
+            
+            table.insert(poly2_points,  poly_points[i])
+            table.insert(poly2_points,  poly_points[i+1])
+        end
+    end
+    
+    -- now all the clipping points
+    table.insert(poly1_points,  x1)
+    table.insert(poly1_points,  y1)    
+    table.insert(poly1_points,  x2)
+    table.insert(poly1_points,  y2)    
+    
+    table.insert(poly2_points,  x1)
+    table.insert(poly2_points,  y1)    
+    table.insert(poly2_points,  x2)
+    table.insert(poly2_points,  y2)
+
+    
+    return poly1_points, poly2_points
+end
+
+function get_side_of_line(x1, y1, x2, y2, xt, yt)
+    local value = ((x2 - x1)*(yt - y1)) - ((xt - x1)*(y2 - y1))
+
+    if value > 0 then
+        return 1
+    elseif value == 0 then 
+        return 0
+    elseif value < 0 then 
+        return -1
+    end
+end
+
+function get_random_id ()
+    return id
 end
