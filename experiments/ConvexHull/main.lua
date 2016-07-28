@@ -62,7 +62,7 @@ function love.mousepressed(x, y, button, istouch)
 
         local stime =  love.timer.getTime()
         add_to_vpolies_Obj(x, y)
-        print("NEW SITE ADDED in t = %.3f ms"  ,  (love.timer.getTime() - stime)*1000)
+        print("NEW SITE ADDED in t =  " .. (love.timer.getTime() - stime)*1000 .. " ms" )
 
     end
     
@@ -92,9 +92,13 @@ function love.keypressed(key)
         vpolies_Obj = {}
         id_list = {}
   
+   elseif key == "return" then
+       add_to_vpolies_Obj(love.math.random(0, love.graphics.getWidth()), love.math.random(0, love.graphics.getHeight()))
+       
     elseif key == "escape" then
        love.event.quit()
-    end
+
+   end
 
  end
 --------------------------------------------------------------------
@@ -256,8 +260,19 @@ function round(num, dp)
   return (math.floor(num * mult + 0.5)) / mult
 end
 
-function equals( x, y, delta )
-    return math.abs( x - y ) <= ( delta or 0.01 )
+function equals( x, y )
+
+    if math.abs(x) >= 1000 and math.abs(y) >= 1000 then
+        eps = 10
+    elseif math.abs(x) >= 100 and math.abs(y) >= 100 then
+        eps = 5 
+    elseif math.abs(x) >= 10 and math.abs(y) >= 10 then
+        eps = 1
+    else
+        eps =  0.1
+    end
+    
+    return math.abs( x - y ) <= ( eps )
 end
 
 function get_perpendicular_bisector(x1, y1, x2, y2) 
@@ -502,206 +517,222 @@ function get_line_intersection (lineA, lineB)
         print("Some error with the line.seg attribute")
         return {intersection = false}
     end
+
+    -- Lets look at cases where Am == Bm
     
-    
-    -- First lets test for colinear and parallel lines
-    if Am == Bm or Am == -Bm then
-        print("Parallel Lines")
-        
-        -- test for colinear lines
-        if Am == 0 and Bm == 0 then
-            print("Scenario :  Am = Bm = 0")
-            
-            -- here both have same y intercept
-            if Ay == By then
+    -- Am = Bm = 0
+    if equals(Am, 0) and equals(Bm, 0) then
+        print("Scenario :  Am = Bm = 0")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        -- here both have same y intercept
+        if equals(Ay, By) then
 
-                if lineA.seg == true and lineB.seg == true then
-                    -- if both lines are segments, there is a chance they lie side by side
-                    -- check if the points for any line lie between the bounding points of the other line
-                    if ( 
-                        (minAx <= minBx and minBx <= maxAx)
-                        or (minAx <= maxBx and maxBx <= maxAx)
-                        or (minBx <= minAx and minAx <= maxBx)
-                        or (minBx <= maxAx and maxAx <= maxBx)
-                        ) then
-                        print("Colinear Lines")
-                        return {intersection = true, colinear = true}
-                    else
-                        print("Non Colinear Lines")
-                        print("Lines lie Side by Side")
-                        return {intersection = false}
-                    end
-                else
-                    -- if either of the lines is not a segment, then they will definitely be collinear
+            if lineA.seg == true and lineB.seg == true then
+                -- if both lines are segments, there is a chance they lie side by side
+                -- check if the points for any line lie between the bounding points of the other line
+                if ( 
+                    (minAx <= minBx and minBx <= maxAx)
+                    or (minAx <= maxBx and maxBx <= maxAx)
+                    or (minBx <= minAx and minAx <= maxBx)
+                    or (minBx <= maxAx and maxAx <= maxBx)
+                    ) then
                     print("Colinear Lines")
                     return {intersection = true, colinear = true}
-                end
-            else
-                print("Non Colinear Lines")
-                return {intersection = false}
-            end
-            
-        elseif (Am == math.huge or Am == -math.huge) and (Bm == math.huge or Bm == -math.huge) then
-            print("Scenario :  Am = Bm = inf")
-            
-            -- here both have same x intercept
-            if Ax == Bx then
-            
-                if lineA.seg == true and lineB.seg == true then
-                    -- if both lines are segments, there is a chance they lie side by side
-                    -- check if the points for any line lie between the bounding points of the other line
-                    if ( 
-                        (minAy <= minBy and minBy <= maxAy)
-                        or (minAy <= maxBy and maxBy <= maxAy)
-                        or (minBy <= minAy and minAy <= maxBy)
-                        or (minBy <= maxAy and maxAy <= maxBy)
-                        ) then
-                        print("Colinear Lines")
-                        return {intersection = true, colinear = true}
-                    else
-                        print("Non Colinear Lines")
-                        print("Lines lie Side by Side")
-                        return {intersection = false}
-                    end
                 else
-                    -- if either of the lines is not a segment, then they will definitely be collinear
-                    print("Colinear Lines")
-                    return {intersection = true, colinear = true}
+                    print("Non Colinear Lines")
+                    print("Lines lie Side by Side")
+                    return {intersection = false}
                 end
             else
-                print("Non Colinear Lines")
-                return {intersection = false}
+                -- if either of the lines is not a segment, then they will definitely be collinear
+                print("Colinear Lines")
+                return {intersection = true, colinear = true}
             end
-            
-        else 
-            print("Scenario :  Am = Bm = valid")
-            print("Am = ", Am)
-            print("Bm = ", Bm)
-            print("Ab = ", Ab)
-            print("Bb = ", Bb)
-            -- local d = round((math.abs(Bb - Ab)) / (math.sqrt((Bm * Bm) + 1)))
-            -- print("d = ", d)
-            if Ab == Bb then
-                if lineA.seg == true and lineB.seg == true then
-                    -- if both lines are segments, there is a chance they lie side by side
-                    -- check if the points for any line lie between the bounding points of the other line
-                    if ( 
-                        (minAx <= minBx and minBx <= maxAx)
-                        or (minAx <= maxBx and maxBx <= maxAx)
-                        or (minBx <= minAx and minAx <= maxBx)
-                        or (minBx <= maxAx and maxAx <= maxBx)
-                        )
-                        and
-                        (
-                        (minAy <= minBy and minBy <= maxAy)
-                        or (minAy <= maxBy and maxBy <= maxAy)
-                        or (minBy <= minAy and minAy <= maxBy)
-                        or (minBy <= maxAy and maxAy <= maxBy)
-                        ) then
-                        print("Colinear Lines")
-                        return {intersection = true, colinear = true}
-                    else
-                        print("Non Colinear Lines")
-                        print("Lines lie Side by Side")
-                        return {intersection = false}
-                    end
-                else
-                    -- if either of the lines is not a segment, then they will definitely be collinear
-                    print("Colinear Lines")
-                    return {intersection = true, colinear = true}
-                end
-            else
-                print("Non Colinear Lines")
-                return {intersection = false}
-            end
-        end
-        
-    else
-        -- print("Non parallel lines")
-        
-        -- Am = 0 and Bm = inf
-        if Am == 0 and (Bm == math.huge or Bm == -math.huge) then
-            print("Scenario :  Am = 0 and Bm = inf")
-            
-            iy = Ay
-            ix = Bx
-            -- print(ix, iy)
-            
-        -- Am = inf and Bm = 0
-        elseif (Am == math.huge or Am == -math.huge) and Bm == 0 then
-            print("Scenario :  Am = inf and Bm = 0")
-            
-            iy = By
-            ix = Ax
-            -- print(ix, iy)
-            
-        -- Am = 0 and Bm = valid
-        elseif Am == 0 and (Bm ~= math.huge or Bm ~= -math.huge) then
-            print("Scenario :  Am = 0 and Bm = valid")
-            
-            iy = Ay
-            ix = (iy - Bb) / Bm
-            -- print(ix, iy)
-            
-        -- Am = valid and Bm = 0 
-        elseif (Am ~= math.huge or Am ~= -math.huge) and Bm == 0 then
-            print("Scenario :  Am = valid and Bm = 0")
-
-            iy = By
-            ix = (iy - Ab) / Am
-            -- print(ix, iy)
-            
-        -- Am = inf and Bm = valid
-        elseif (Am == math.huge or Am == -math.huge) and  (Bm ~= math.huge or Bm ~= -math.huge) then
-            print("Scenario :  Am = inf and Bm = valid")
-
-            ix = Ax
-            iy = (Bm * ix) + Bb
-            -- print(ix, iy)
-        
-        -- Am = valid and Bm = inf
-        elseif (Am ~= math.huge or Am ~= -math.huge) and  (Bm == math.huge or Bm == -math.huge) then
-            print("Scenario :  Am = valid and Bm = inf")
-
-            ix = Bx
-            iy = (Am * ix) + Ab
-            -- print(ix, iy)
-            
-        -- Am = valid and Bm = valid
-        elseif  (Am ~= math.huge or Am ~= -math.huge) and  (Bm ~= math.huge or Bm ~= -math.huge) then
-            print("Scenario :  Am = valid and Bm = valid")
-            print("Am = ", Am)
-            print("Bm = ", Bm)
-            
-            ix = -( (Bb - Ab)/(Bm - Am))
-            iy = (Bm * ix) + Bb            
-            -- print(ix, iy)
-
         else
-            print("WHAT IS THIS I CANT EVEN!")
-            print("UNHANDLED SCENARIO ALERT!!!")
-        end
-        
-        
-        -- Now that we have the Intersection points ix and iy, we need to check if they fall on the lines
-        -- for lines, the intersection points just being +ve is sufficient
-        -- for the intersection point to be valid, it should fall on both the lines
-        -- for the intersection point to be valid, it should fall on both the lines
-        if (
-            (minAx <= ix and ix <= maxAx) 
-            and (minBx <= ix and ix <= maxBx) 
-            and (minAy <= iy and iy <= maxAy) 
-            and (minBy <= iy and iy <= maxBy) 
-            ) then
-            print("Found Intersection!")
-            return {intersection = true, colinear = false, ix = round(ix), iy = round(iy)}
-        else
-            -- print("Found NO Intersection!")
+            print("Non Colinear Lines. Parallel Lines.")
             return {intersection = false}
         end
         
-    end
+    -- Am = inf and Bm = inf
+    elseif (Am == math.huge or Am == -math.huge) and (Bm == math.huge or Bm == -math.huge) then
+        print("Scenario :  Am = Bm = inf")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        -- here both have same x intercept
+        if equals(Ax, Bx) then
+        
+            if lineA.seg == true and lineB.seg == true then
+                -- if both lines are segments, there is a chance they lie side by side
+                -- check if the points for any line lie between the bounding points of the other line
+                if ( 
+                    (minAy <= minBy and minBy <= maxAy)
+                    or (minAy <= maxBy and maxBy <= maxAy)
+                    or (minBy <= minAy and minAy <= maxBy)
+                    or (minBy <= maxAy and maxAy <= maxBy)
+                    ) then
+                    print("Colinear Lines")
+                    return {intersection = true, colinear = true}
+                else
+                    print("Non Colinear Lines")
+                    print("Lines lie Side by Side")
+                    return {intersection = false}
+                end
+            else
+                -- if either of the lines is not a segment, then they will definitely be collinear
+                print("Colinear Lines")
+                return {intersection = true, colinear = true}
+            end
+        end
+        
+    -- Am = valid and Bm = valid AND Am == Bm
+    elseif  (Am ~= math.huge or Am ~= -math.huge) and  (Bm ~= math.huge or Bm ~= -math.huge) and equals(Am, Bm) then
+        print("Scenario :  Am = valid and Bm = valid AND Am == Bm")        
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
 
+        if equals(Ab, Bb) then
+            if lineA.seg == true and lineB.seg == true then
+                -- if both lines are segments, there is a chance they lie side by side
+                -- check if the points for any line lie between the bounding points of the other line
+                if ( 
+                    (minAx <= minBx and minBx <= maxAx)
+                    or (minAx <= maxBx and maxBx <= maxAx)
+                    or (minBx <= minAx and minAx <= maxBx)
+                    or (minBx <= maxAx and maxAx <= maxBx)
+                    )
+                    and
+                    (
+                    (minAy <= minBy and minBy <= maxAy)
+                    or (minAy <= maxBy and maxBy <= maxAy)
+                    or (minBy <= minAy and minAy <= maxBy)
+                    or (minBy <= maxAy and maxAy <= maxBy)
+                    ) then
+                    print("Colinear Lines")
+                    return {intersection = true, colinear = true}
+                else
+                    print("Non Colinear Lines")
+                    print("Lines lie Side by Side")
+                    return {intersection = false}
+                end
+            else
+                -- if either of the lines is not a segment, then they will definitely be collinear
+                print("Colinear Lines")
+                return {intersection = true, colinear = true}
+            end
+        else
+            print("Non Colinear Lines")
+            return {intersection = false}
+        end
+
+     -- Now lets look at cases where Am ~= Bm
+        
+    -- Am = 0 and Bm = inf
+    elseif equals(Am, 0) and (Bm == math.huge or Bm == -math.huge) then
+        print("Scenario :  Am = 0 and Bm = inf")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        iy = Ay
+        ix = Bx
+        -- print(ix, iy)
+        
+    -- Am = inf and Bm = 0
+    elseif (Am == math.huge or Am == -math.huge) and equals(Bm, 0) then
+        print("Scenario :  Am = inf and Bm = 0")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        iy = By
+        ix = Ax
+        -- print(ix, iy)
+        
+    -- Am = 0 and Bm = valid
+    elseif equals(Am, 0) and (Bm ~= math.huge or Bm ~= -math.huge) then
+        print("Scenario :  Am = 0 and Bm = valid")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        iy = Ay
+        ix = (iy - Bb) / Bm
+        -- print(ix, iy)
+        
+    -- Am = valid and Bm = 0 
+    elseif (Am ~= math.huge or Am ~= -math.huge) and equals(Bm, 0) then
+        print("Scenario :  Am = valid and Bm = 0")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        iy = By
+        ix = (iy - Ab) / Am
+        -- print(ix, iy)
+        
+    -- Am = inf and Bm = valid
+    elseif (Am == math.huge or Am == -math.huge) and  (Bm ~= math.huge or Bm ~= -math.huge) then
+        print("Scenario :  Am = inf and Bm = valid")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        ix = Ax
+        iy = (Bm * ix) + Bb
+        -- print(ix, iy)
+    
+    -- Am = valid and Bm = inf
+    elseif (Am ~= math.huge or Am ~= -math.huge) and  (Bm == math.huge or Bm == -math.huge) then
+        print("Scenario :  Am = valid and Bm = inf")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        ix = Bx
+        iy = (Am * ix) + Ab
+        -- print(ix, iy)
+
+        -- Am = valid and Bm = valid AND Am ~= Bm
+    elseif  (Am ~= math.huge or Am ~= -math.huge) and  (Bm ~= math.huge or Bm ~= -math.huge) then
+        print("Scenario :  Am = valid and Bm = valid AND Am ~= Bm")
+        print("Am = ", Am)
+        print("Bm = ", Bm)
+        print("Ab = ", Ab)
+        print("Bb = ", Bb)
+        
+        ix = -( (Bb - Ab)/(Bm - Am))
+        iy = (Bm * ix) + Bb            
+        -- print(ix, iy)
+
+    else
+        print("WHAT IS THIS I CANT EVEN!")
+        print("UNHANDLED SCENARIO ALERT!!!")
+    end
+    
+    
+    -- Now that we have the Intersection points ix and iy, we need to check if they fall on the lines
+    -- for lines, the intersection points just being +ve is sufficient
+    -- for the intersection point to be valid, it should fall on both the lines
+    -- for the intersection point to be valid, it should fall on both the lines
+    if (
+        (minAx <= ix and ix <= maxAx)
+        and (minBx <= ix and ix <= maxBx)
+        and (minAy <= iy and iy <= maxAy)
+        and (minBy <= iy and iy <= maxBy)
+    ) then
+        print("Found Intersection!")
+        return {intersection = true, colinear = false, ix = round(ix), iy = round(iy)}
+    else
+        -- print("Found NO Intersection!")
+        return {intersection = false}
+    end
 end
 
 function split_polygon(poly_points, x1, y1, x2, y2)
